@@ -11,6 +11,23 @@ interface IngredientInput {
   notes: string;
 }
 
+interface FilterOption {
+  id: number;
+  name: string;
+  level_order?: number; // For difficulty levels
+}
+
+interface FilterOptionsResponse {
+  categories: FilterOption[];
+  cuisines: FilterOption[];
+  seasons: FilterOption[];
+  dietaryRestrictions: FilterOption[];
+  cookingMethods: FilterOption[];
+  mainIngredients: FilterOption[];
+  difficultyLevels: FilterOption[];
+  occasions: FilterOption[];
+}
+
 // Type for the full recipe data (from backend GET /recipes/:id)
 interface RecipeData {
   id: number;
@@ -30,6 +47,14 @@ interface RecipeData {
     unit: string;
     notes?: string;
   }[];
+  categories?: number[];
+  cuisines?: number[];
+  seasons?: number[];
+  dietary_restrictions?: number[];
+  cooking_methods?: number[];
+  main_ingredients?: number[];
+  difficulty_levels?: number[];
+  occasions?: number[];
 }
 
 const EditRecipePage: React.FC = () => {
@@ -61,6 +86,27 @@ const EditRecipePage: React.FC = () => {
     undefined
   );
 
+  const [filterOptions, setFilterOptions] =
+    useState<FilterOptionsResponse | null>(null);
+  const [filtersLoading, setFiltersLoading] = useState(true);
+  const [filtersError, setFiltersError] = useState<string | null>(null);
+
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+  const [selectedCuisines, setSelectedCuisines] = useState<number[]>([]);
+  const [selectedSeasons, setSelectedSeasons] = useState<number[]>([]);
+  const [selectedDietaryRestrictions, setSelectedDietaryRestrictions] =
+    useState<number[]>([]);
+  const [selectedCookingMethods, setSelectedCookingMethods] = useState<
+    number[]
+  >([]);
+  const [selectedMainIngredients, setSelectedMainIngredients] = useState<
+    number[]
+  >([]);
+  const [selectedDifficultyLevels, setSelectedDifficultyLevels] = useState<
+    number[]
+  >([]);
+  const [selectedOccasions, setSelectedOccasions] = useState<number[]>([]);
+
   // Helper to convert total minutes to hours and minutes
   const minutesToHoursMinutes = (totalMinutes?: number | null) => {
     if (totalMinutes === undefined || totalMinutes === null) {
@@ -73,19 +119,32 @@ const EditRecipePage: React.FC = () => {
 
   // Fetch recipe data on component mount
   useEffect(() => {
-    const fetchRecipe = async () => {
-      if (!id) {
-        setError("Recipe ID is missing.");
-        setLoadingRecipe(false);
-        return;
-      }
-      try {
-        const response = await api.get<RecipeData>(`/recipes/${id}`);
-        const recipe = response.data;
+    const fetchData = async () => {
+      setFiltersLoading(true);
+      setFiltersError(null);
+      setLoadingRecipe(true);
+      setError(null);
 
-        // Check if current user is owner or admin
+      try {
+        // Fetch all filter options
+        const filtersResponse = await api.get<FilterOptionsResponse>(
+          "/data/filters"
+        );
+        setFilterOptions(filtersResponse.data);
+        setFiltersLoading(false);
+
+        // Fetch recipe data
+        if (!id) {
+          setError("Recipe ID is missing.");
+          setLoadingRecipe(false);
+          return;
+        }
+        const recipeResponse = await api.get<RecipeData>(`/recipes/${id}`);
+        const recipe = recipeResponse.data;
+
+        // Check authorization
         if (user?.id !== recipe.user_id && !user?.is_admin) {
-          navigate("/"); // Not authorized to edit, redirect home
+          navigate("/");
           return;
         }
 
@@ -93,23 +152,19 @@ const EditRecipePage: React.FC = () => {
         setTitle(recipe.title);
         setDescription(recipe.description || "");
         setInstructions(recipe.instructions);
-
-        // Convert prep_time_minutes and cook_time_minutes to hours and minutes
         const { hours: prepHrs, minutes: prepMins } = minutesToHoursMinutes(
           recipe.prep_time_minutes
         );
         setPrepTimeHours(prepHrs);
         setPrepTimeMinutes(prepMins);
-
         const { hours: cookHrs, minutes: cookMins } = minutesToHoursMinutes(
           recipe.cook_time_minutes
         );
         setCookTimeHours(cookHrs);
         setCookTimeMinutes(cookMins);
-
         setServings(recipe.servings?.toString() || "");
         setImageUrl(recipe.image_url || "");
-        setVideoUrl(recipe.video_url || ""); // Set video URL
+        setVideoUrl(recipe.video_url || "");
         setRecipeOwnerId(recipe.user_id);
 
         // Map ingredients to local state format
@@ -122,18 +177,43 @@ const EditRecipePage: React.FC = () => {
           }))
         );
 
+        // <--- NEW: Pre-populate selected filter states from fetched recipe
+        setSelectedCategories(recipe.categories || []);
+        setSelectedCuisines(recipe.cuisines || []);
+        setSelectedSeasons(recipe.seasons || []);
+        setSelectedDietaryRestrictions(recipe.dietary_restrictions || []);
+        setSelectedCookingMethods(recipe.cooking_methods || []);
+        setSelectedMainIngredients(recipe.main_ingredients || []);
+        setSelectedDifficultyLevels(recipe.difficulty_levels || []);
+        setSelectedOccasions(recipe.occasions || []);
+        // --- END NEW ---
+
         setLoadingRecipe(false);
       } catch (err: any) {
-        console.error("Error fetching recipe for edit:", err);
+        console.error("Error fetching data for edit:", err);
         setError(
-          err.response?.data?.message || "Failed to load recipe for editing."
+          err.response?.data?.message || "Failed to load data for editing."
         );
         setLoadingRecipe(false);
+        setFiltersError(
+          err.response?.data?.message ||
+            "Failed to load filter options for editing."
+        ); // Also set filter error
       }
     };
-
-    fetchRecipe();
+    fetchData();
   }, [id, navigate, user]); // Depend on ID, navigate, and user for auth check
+
+  // Handle changes to multi-select filters (same as AddRecipePage)
+  // <--- NEW: Generic handler for multi-select dropdowns/checkboxes
+  const handleMultiSelectChange = (
+    e: React.ChangeEvent<HTMLSelectElement>,
+    setter: React.Dispatch<React.SetStateAction<number[]>>
+  ) => {
+    const options = Array.from(e.target.selectedOptions);
+    const values = options.map((option) => parseInt(option.value));
+    setter(values);
+  };
 
   // Handle changes to recipe fields
   const handleChange = (
@@ -244,6 +324,14 @@ const EditRecipePage: React.FC = () => {
         image_url: imageUrl || null,
         video_url: videoUrl || null, // Include video URL
         ingredients: formattedIngredients,
+        categories: selectedCategories,
+        cuisines: selectedCuisines,
+        seasons: selectedSeasons,
+        dietary_restrictions: selectedDietaryRestrictions,
+        cooking_methods: selectedCookingMethods,
+        main_ingredients: selectedMainIngredients,
+        difficulty_levels: selectedDifficultyLevels,
+        occasions: selectedOccasions,
       };
 
       const response = await api.put(`/recipes/${id}`, recipeData); // <--- PUT request
@@ -263,17 +351,26 @@ const EditRecipePage: React.FC = () => {
     }
   };
 
-  if (loadingRecipe) {
+  if (filtersLoading || loadingRecipe) {
     return (
-      <div className="edit-recipe-container">Loading recipe for edit...</div>
+      <div className="edit-recipe-container">
+        Loading recipe and filter options...
+      </div>
     );
   }
 
-  if (error) {
+  if (error || filtersError) {
     return (
       <div className="edit-recipe-container" style={{ color: "red" }}>
-        Error: {error}
+        Error: {error || filtersError}
       </div>
+    );
+  }
+
+  if (!filterOptions) {
+    // Should not happen if no error
+    return (
+      <div className="edit-recipe-container">No filter options available.</div>
     );
   }
 
@@ -403,6 +500,172 @@ const EditRecipePage: React.FC = () => {
               className="edit-recipe-input"
               placeholder="e.g., https://www.youtube.com/watch?v=..."
             />
+          </div>
+        </div>
+
+        <div className="edit-recipe-section">
+          <h3 className="edit-recipe-section-header">Recipe Filters</h3>
+
+          {/* Categories */}
+          <div className="edit-recipe-form-group">
+            <label className="edit-recipe-label">Categories (Meal Type):</label>
+            <select
+              multiple
+              name="categories"
+              value={selectedCategories.map(String)}
+              onChange={(e) =>
+                handleMultiSelectChange(e, setSelectedCategories)
+              }
+              className="edit-recipe-select-multi"
+            >
+              {filterOptions.categories.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Cuisines */}
+          <div className="edit-recipe-form-group">
+            <label className="edit-recipe-label">Cuisines:</label>
+            <select
+              multiple
+              name="cuisines"
+              value={selectedCuisines.map(String)}
+              onChange={(e) => handleMultiSelectChange(e, setSelectedCuisines)}
+              className="edit-recipe-select-multi"
+            >
+              {filterOptions.cuisines.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Seasons */}
+          <div className="edit-recipe-form-group">
+            <label className="edit-recipe-label">Seasons:</label>
+            <select
+              multiple
+              name="seasons"
+              value={selectedSeasons.map(String)}
+              onChange={(e) => handleMultiSelectChange(e, setSelectedSeasons)}
+              className="edit-recipe-select-multi"
+            >
+              {filterOptions.seasons.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Dietary Restrictions */}
+          <div className="edit-recipe-form-group">
+            <label className="edit-recipe-label">
+              Dietary Restrictions/Needs:
+            </label>
+            <select
+              multiple
+              name="dietaryRestrictions"
+              value={selectedDietaryRestrictions.map(String)}
+              onChange={(e) =>
+                handleMultiSelectChange(e, setSelectedDietaryRestrictions)
+              }
+              className="edit-recipe-select-multi"
+            >
+              {filterOptions.dietaryRestrictions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Cooking Methods */}
+          <div className="edit-recipe-form-group">
+            <label className="edit-recipe-label">Cooking Methods:</label>
+            <select
+              multiple
+              name="cookingMethods"
+              value={selectedCookingMethods.map(String)}
+              onChange={(e) =>
+                handleMultiSelectChange(e, setSelectedCookingMethods)
+              }
+              className="edit-recipe-select-multi"
+            >
+              {filterOptions.cookingMethods.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Main Ingredients */}
+          <div className="edit-recipe-form-group">
+            <label className="edit-recipe-label">Main Ingredients:</label>
+            <select
+              multiple
+              name="mainIngredients"
+              value={selectedMainIngredients.map(String)}
+              onChange={(e) =>
+                handleMultiSelectChange(e, setSelectedMainIngredients)
+              }
+              className="edit-recipe-select-multi"
+            >
+              {filterOptions.mainIngredients.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Difficulty Levels */}
+          <div className="edit-recipe-form-group">
+            <label className="edit-recipe-label">Difficulty Level:</label>
+            <select
+              multiple
+              name="difficultyLevels"
+              value={selectedDifficultyLevels.map(String)}
+              onChange={(e) =>
+                handleMultiSelectChange(e, setSelectedDifficultyLevels)
+              }
+              className="edit-recipe-select-multi"
+            >
+              {filterOptions.difficultyLevels
+                .sort(
+                  (a, b) =>
+                    (a.level_order || 0) - (b.level_order || 0) ||
+                    a.name.localeCompare(b.name)
+                )
+                .map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          {/* Occasions */}
+          <div className="edit-recipe-form-group">
+            <label className="edit-recipe-label">Occasions:</label>
+            <select
+              multiple
+              name="occasions"
+              value={selectedOccasions.map(String)}
+              onChange={(e) => handleMultiSelectChange(e, setSelectedOccasions)}
+              className="edit-recipe-select-multi"
+            >
+              {filterOptions.occasions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

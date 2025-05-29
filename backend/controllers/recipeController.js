@@ -7,6 +7,45 @@ const isOwnerOrAdmin = (req, recipe) => {
   return req.user && (req.user.userId === recipe.user_id || req.user.is_admin);
 };
 
+const saveJunctionTableEntries = async (
+  trx,
+  recipeId,
+  table,
+  columnId,
+  itemIds
+) => {
+  if (!itemIds || itemIds.length === 0) return; // Only proceed if there are IDs to insert
+  const entries = itemIds.map((id) => ({
+    recipe_id: recipeId,
+    [columnId]: id,
+  }));
+  await trx(table).insert(entries);
+};
+
+// --- NEW HELPER FUNCTION START ---
+/**
+ * Helper function to fetch IDs from junction tables.
+ * @param {number} recipeId - The ID of the recipe.
+ * @param {string} junctionTable - The name of the junction table (e.g., 'recipe_categories').
+ * @param {string} columnId - The name of the column holding the ID in the junction table (e.g., 'category_id').
+ * @returns {Promise<Array<number>>} A promise that resolves to an array of IDs.
+ */
+const fetchJunctionTableIds = async (recipeId, junctionTable, columnId) => {
+  try {
+    const result = await knex(junctionTable)
+      .select(columnId)
+      .where({ recipe_id: recipeId });
+    return result.map((row) => row[columnId]);
+  } catch (error) {
+    console.error(
+      `Error fetching IDs from ${junctionTable} for recipe ${recipeId}:`,
+      error
+    );
+    throw error; // Re-throw the error to be caught by the calling function
+  }
+};
+// --- NEW HELPER FUNCTION END ---
+
 exports.createRecipe = async (req, res) => {
   const {
     title,
@@ -18,6 +57,14 @@ exports.createRecipe = async (req, res) => {
     image_url,
     video_url,
     ingredients,
+    categories,
+    cuisines,
+    seasons,
+    dietary_restrictions,
+    cooking_methods,
+    main_ingredients,
+    difficulty_levels,
+    occasions,
   } = req.body;
   const user_id = req.user.userId;
 
@@ -66,6 +113,63 @@ exports.createRecipe = async (req, res) => {
       if (recipeIngredientsToInsert.length > 0) {
         await trx("recipe_ingredients").insert(recipeIngredientsToInsert);
       }
+
+      await saveJunctionTableEntries(
+        trx,
+        recipeId.id,
+        "recipe_categories",
+        "category_id",
+        categories
+      );
+      await saveJunctionTableEntries(
+        trx,
+        recipeId.id,
+        "recipe_cuisines",
+        "cuisine_id",
+        cuisines
+      );
+      await saveJunctionTableEntries(
+        trx,
+        recipeId.id,
+        "recipe_seasons",
+        "season_id",
+        seasons
+      );
+      await saveJunctionTableEntries(
+        trx,
+        recipeId.id,
+        "recipe_dietary_restrictions",
+        "dietary_restriction_id",
+        dietary_restrictions
+      );
+      await saveJunctionTableEntries(
+        trx,
+        recipeId.id,
+        "recipe_cooking_methods",
+        "cooking_method_id",
+        cooking_methods
+      );
+      await saveJunctionTableEntries(
+        trx,
+        recipeId.id,
+        "recipe_main_ingredients",
+        "main_ingredient_id",
+        main_ingredients
+      );
+      await saveJunctionTableEntries(
+        trx,
+        recipeId.id,
+        "recipe_difficulty_levels",
+        "difficulty_level_id",
+        difficulty_levels
+      );
+      await saveJunctionTableEntries(
+        trx,
+        recipeId.id,
+        "recipe_occasions",
+        "occasion_id",
+        occasions
+      );
 
       res.status(201).json({
         message: "Recipe created successfully!",
@@ -185,6 +289,47 @@ exports.getRecipeById = async (req, res) => {
       currentUserRating = userRating ? userRating.rating : 0;
     }
 
+    const categories = await fetchJunctionTableIds(
+      id,
+      "recipe_categories",
+      "category_id"
+    );
+    const cuisines = await fetchJunctionTableIds(
+      id,
+      "recipe_cuisines",
+      "cuisine_id"
+    );
+    const seasons = await fetchJunctionTableIds(
+      id,
+      "recipe_seasons",
+      "season_id"
+    );
+    const dietary_restrictions = await fetchJunctionTableIds(
+      id,
+      "recipe_dietary_restrictions",
+      "dietary_restriction_id"
+    );
+    const cooking_methods = await fetchJunctionTableIds(
+      id,
+      "recipe_cooking_methods",
+      "cooking_method_id"
+    );
+    const main_ingredients = await fetchJunctionTableIds(
+      id,
+      "recipe_main_ingredients",
+      "main_ingredient_id"
+    );
+    const difficulty_levels = await fetchJunctionTableIds(
+      id,
+      "recipe_difficulty_levels",
+      "difficulty_level_id"
+    );
+    const occasions = await fetchJunctionTableIds(
+      id,
+      "recipe_occasions",
+      "occasion_id"
+    );
+
     res.status(200).json({
       ...recipe,
       ingredients,
@@ -192,6 +337,14 @@ exports.getRecipeById = async (req, res) => {
       average_rating: parseFloat(ratingStats.average_rating || 0), // Send as float, not string
       total_ratings: parseInt(ratingStats.total_ratings || 0), // Send as integer
       current_user_rating: currentUserRating,
+      categories,
+      cuisines,
+      seasons,
+      dietary_restrictions,
+      cooking_methods,
+      main_ingredients,
+      difficulty_levels,
+      occasions,
     });
   } catch (error) {
     console.error("Error fetching recipe by ID:", error);
@@ -262,6 +415,14 @@ exports.updateRecipe = async (req, res) => {
     image_url,
     video_url,
     ingredients,
+    categories,
+    cuisines,
+    seasons,
+    dietary_restrictions,
+    cooking_methods,
+    main_ingredients,
+    difficulty_levels,
+    occasions,
   } = req.body;
 
   if (!title || !instructions || !ingredients || ingredients.length === 0) {
@@ -319,6 +480,72 @@ exports.updateRecipe = async (req, res) => {
       if (recipeIngredientsToInsert.length > 0) {
         await trx("recipe_ingredients").insert(recipeIngredientsToInsert);
       }
+
+      await trx("recipe_categories").where({ recipe_id: id }).del();
+      await trx("recipe_cuisines").where({ recipe_id: id }).del();
+      await trx("recipe_seasons").where({ recipe_id: id }).del();
+      await trx("recipe_dietary_restrictions").where({ recipe_id: id }).del();
+      await trx("recipe_cooking_methods").where({ recipe_id: id }).del();
+      await trx("recipe_main_ingredients").where({ recipe_id: id }).del();
+      await trx("recipe_difficulty_levels").where({ recipe_id: id }).del();
+      await trx("recipe_occasions").where({ recipe_id: id }).del();
+
+      await saveJunctionTableEntries(
+        trx,
+        id,
+        "recipe_categories",
+        "category_id",
+        categories
+      );
+      await saveJunctionTableEntries(
+        trx,
+        id,
+        "recipe_cuisines",
+        "cuisine_id",
+        cuisines
+      );
+      await saveJunctionTableEntries(
+        trx,
+        id,
+        "recipe_seasons",
+        "season_id",
+        seasons
+      );
+      await saveJunctionTableEntries(
+        trx,
+        id,
+        "recipe_dietary_restrictions",
+        "dietary_restriction_id",
+        dietary_restrictions
+      );
+      await saveJunctionTableEntries(
+        trx,
+        id,
+        "recipe_cooking_methods",
+        "cooking_method_id",
+        cooking_methods
+      );
+      await saveJunctionTableEntries(
+        trx,
+        id,
+        "recipe_main_ingredients",
+        "main_ingredient_id",
+        main_ingredients
+      );
+      await saveJunctionTableEntries(
+        trx,
+        id,
+        "recipe_difficulty_levels",
+        "difficulty_level_id",
+        difficulty_levels
+      );
+      await saveJunctionTableEntries(
+        trx,
+        id,
+        "recipe_occasions",
+        "occasion_id",
+        occasions
+      );
 
       res.status(200).json({ message: "Recipe updated successfully!" });
     });

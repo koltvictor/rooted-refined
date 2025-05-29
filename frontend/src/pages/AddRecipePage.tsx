@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/api"; // Our configured Axios instance
 import { useAuth } from "../context/AuthContext";
@@ -9,6 +9,23 @@ interface IngredientInput {
   quantity: string; // Use string for input, convert to number before sending
   unit: string;
   notes: string;
+}
+
+interface FilterOption {
+  id: number;
+  name: string;
+  level_order?: number; // For difficulty levels
+}
+
+interface FilterOptionsResponse {
+  categories: FilterOption[];
+  cuisines: FilterOption[];
+  seasons: FilterOption[];
+  dietaryRestrictions: FilterOption[];
+  cookingMethods: FilterOption[];
+  mainIngredients: FilterOption[];
+  difficultyLevels: FilterOption[];
+  occasions: FilterOption[];
 }
 
 const AddRecipePage: React.FC = () => {
@@ -39,6 +56,55 @@ const AddRecipePage: React.FC = () => {
   const [ingredients, setIngredients] = useState<IngredientInput[]>([
     { name: "", quantity: "", unit: "", notes: "" },
   ]);
+
+  const [filterOptions, setFilterOptions] =
+    useState<FilterOptionsResponse | null>(null);
+  const [filtersLoading, setFiltersLoading] = useState(true);
+  const [filtersError, setFiltersError] = useState<string | null>(null);
+
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+  const [selectedCuisines, setSelectedCuisines] = useState<number[]>([]);
+  const [selectedSeasons, setSelectedSeasons] = useState<number[]>([]);
+  const [selectedDietaryRestrictions, setSelectedDietaryRestrictions] =
+    useState<number[]>([]);
+  const [selectedCookingMethods, setSelectedCookingMethods] = useState<
+    number[]
+  >([]);
+  const [selectedMainIngredients, setSelectedMainIngredients] = useState<
+    number[]
+  >([]);
+  const [selectedDifficultyLevels, setSelectedDifficultyLevels] = useState<
+    number[]
+  >([]);
+  const [selectedOccasions, setSelectedOccasions] = useState<number[]>([]);
+
+  useEffect(() => {
+    const fetchFilterOptions = async () => {
+      setFiltersLoading(true);
+      setFiltersError(null);
+      try {
+        const response = await api.get("/data/filters");
+        setFilterOptions(response.data);
+      } catch (err: any) {
+        console.error("Error fetching filter options:", err);
+        setFiltersError("Failed to load filter options.");
+      } finally {
+        setFiltersLoading(false);
+      }
+    };
+    fetchFilterOptions();
+  }, []); // Empty dependency array means run once on mount
+
+  // Handle changes to multi-select filters
+  // <--- NEW: Generic handler for multi-select dropdowns/checkboxes
+  const handleMultiSelectChange = (
+    e: React.ChangeEvent<HTMLSelectElement>,
+    setter: React.Dispatch<React.SetStateAction<number[]>>
+  ) => {
+    const options = Array.from(e.target.selectedOptions);
+    const values = options.map((option) => parseInt(option.value));
+    setter(values);
+  };
 
   // Handle changes to recipe fields
   const handleChange = (
@@ -150,6 +216,14 @@ const AddRecipePage: React.FC = () => {
         image_url: imageUrl || null,
         video_url: videoUrl || null,
         ingredients: formattedIngredients,
+        categories: selectedCategories,
+        cuisines: selectedCuisines,
+        seasons: selectedSeasons,
+        dietary_restrictions: selectedDietaryRestrictions,
+        cooking_methods: selectedCookingMethods,
+        main_ingredients: selectedMainIngredients,
+        difficulty_levels: selectedDifficultyLevels,
+        occasions: selectedOccasions,
       };
 
       const response = await api.post("/recipes", recipeData);
@@ -166,6 +240,14 @@ const AddRecipePage: React.FC = () => {
       setImageUrl("");
       setVideoUrl("");
       setIngredients([{ name: "", quantity: "", unit: "", notes: "" }]);
+      setSelectedCategories([]);
+      setSelectedCuisines([]);
+      setSelectedSeasons([]);
+      setSelectedDietaryRestrictions([]);
+      setSelectedCookingMethods([]);
+      setSelectedMainIngredients([]);
+      setSelectedDifficultyLevels([]);
+      setSelectedOccasions([]);
       setLoading(false);
       navigate(`/recipes/${response.data.recipeId}`); // Redirect to the new recipe page
     } catch (error: any) {
@@ -180,6 +262,21 @@ const AddRecipePage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  if (filtersLoading) {
+    return <div style={styles.container}>Loading filter options...</div>;
+  }
+  if (filtersError) {
+    return (
+      <div style={{ ...styles.container, color: "red" }}>
+        Error loading filter options: {filtersError}
+      </div>
+    );
+  }
+  if (!filterOptions) {
+    // Should not happen if no error
+    return <div style={styles.container}>No filter options available.</div>;
+  }
 
   return (
     <div style={styles.container}>
@@ -308,6 +405,169 @@ const AddRecipePage: React.FC = () => {
           </div>
         </div>
 
+        <div style={styles.section}>
+          <h3 style={styles.sectionHeader}>Recipe Filters</h3>
+
+          {/* Categories */}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Categories (Meal Type):</label>
+            <select
+              multiple
+              name="categories"
+              value={selectedCategories.map(String)}
+              onChange={(e) =>
+                handleMultiSelectChange(e, setSelectedCategories)
+              }
+              className="select-multi" // <--- USE CLASS NAME HERE
+            >
+              {filterOptions.categories.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Cuisines */}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Cuisines:</label>
+            <select
+              multiple
+              name="cuisines"
+              value={selectedCuisines.map(String)}
+              onChange={(e) => handleMultiSelectChange(e, setSelectedCuisines)}
+              className="select-multi" // <--- USE CLASS NAME HERE
+            >
+              {filterOptions.cuisines.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Seasons */}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Seasons:</label>
+            <select
+              multiple
+              name="seasons"
+              value={selectedSeasons.map(String)}
+              onChange={(e) => handleMultiSelectChange(e, setSelectedSeasons)}
+              className="select-multi" // <--- USE CLASS NAME HERE
+            >
+              {filterOptions.seasons.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Dietary Restrictions */}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Dietary Restrictions/Needs:</label>
+            <select
+              multiple
+              name="dietaryRestrictions"
+              value={selectedDietaryRestrictions.map(String)}
+              onChange={(e) =>
+                handleMultiSelectChange(e, setSelectedDietaryRestrictions)
+              }
+              className="select-multi" // <--- USE CLASS NAME HERE
+            >
+              {filterOptions.dietaryRestrictions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Cooking Methods */}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Cooking Methods:</label>
+            <select
+              multiple
+              name="cookingMethods"
+              value={selectedCookingMethods.map(String)}
+              onChange={(e) =>
+                handleMultiSelectChange(e, setSelectedCookingMethods)
+              }
+              className="select-multi" // <--- USE CLASS NAME HERE
+            >
+              {filterOptions.cookingMethods.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Main Ingredients */}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Main Ingredients:</label>
+            <select
+              multiple
+              name="mainIngredients"
+              value={selectedMainIngredients.map(String)}
+              onChange={(e) =>
+                handleMultiSelectChange(e, setSelectedMainIngredients)
+              }
+              className="select-multi" // <--- USE CLASS NAME HERE
+            >
+              {filterOptions.mainIngredients.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Difficulty Levels */}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Difficulty Level:</label>
+            <select
+              multiple
+              name="difficultyLevels"
+              value={selectedDifficultyLevels.map(String)}
+              onChange={(e) =>
+                handleMultiSelectChange(e, setSelectedDifficultyLevels)
+              }
+              className="select-multi" // <--- USE CLASS NAME HERE
+            >
+              {filterOptions.difficultyLevels
+                .sort(
+                  (a, b) =>
+                    (a.level_order || 0) - (b.level_order || 0) ||
+                    a.name.localeCompare(b.name)
+                )
+                .map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          {/* Occasions */}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Occasions:</label>
+            <select
+              multiple
+              name="occasions"
+              value={selectedOccasions.map(String)}
+              onChange={(e) => handleMultiSelectChange(e, setSelectedOccasions)}
+              className="select-multi" // <--- USE CLASS NAME HERE
+            >
+              {filterOptions.occasions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
         {/* Ingredients Section */}
         <div style={styles.section}>
           <h3 style={styles.sectionHeader}>Ingredients</h3>
@@ -446,7 +706,7 @@ const styles = {
     gap: "10px",
   },
   timeInput: {
-    width: "80px", // Adjust width for time inputs
+    width: "80px",
     textAlign: "center",
   },
   timeSeparator: {
@@ -458,11 +718,11 @@ const styles = {
     gap: "10px",
     marginBottom: "10px",
     alignItems: "center",
-    flexWrap: "wrap", // Allow wrapping on smaller screens
+    flexWrap: "wrap",
   },
   ingredientInput: {
-    flex: "1", // Take available space
-    minWidth: "100px", // Minimum width for inputs
+    flex: "1",
+    minWidth: "100px",
     padding: "8px",
     border: "1px solid #ccc",
     borderRadius: "4px",

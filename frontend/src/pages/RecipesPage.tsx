@@ -1,6 +1,6 @@
 // frontend/src/pages/RecipesPage.tsx
 
-import React, { useState, useEffect, useMemo } from "react"; // <--- ADD useMemo
+import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/api";
 import "./RecipesPage.css";
@@ -23,18 +23,16 @@ interface Recipe {
 }
 
 const RecipesPage: React.FC = () => {
-  const [allRecipes, setAllRecipes] = useState<Recipe[]>([]); // <--- NEW: Store ALL (or backend-filtered) recipes
-  const [loading, setLoading] = useState(true); // Still for initial/backend fetch state
+  const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState(""); // Immediate input value
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const debouncedSearchTerm = useDebounce(searchTerm, 300); // <--- Shorter debounce for faster updates
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-  // <--- NEW: useEffect for backend fetching (only on debounced term change)
-  // This hook handles fetching the "master" list of recipes from the backend
   useEffect(() => {
     const fetchRecipes = async () => {
-      setLoading(true); // Show loading for backend fetch
+      setLoading(true);
       setError(null);
 
       try {
@@ -51,12 +49,9 @@ const RecipesPage: React.FC = () => {
         setLoading(false); // Hide loading after backend fetch
       }
     };
-
-    // Only run this fetch when the debounced term changes (after user pauses typing)
     fetchRecipes();
-  }, [debouncedSearchTerm]); // Dependency array: debouncedSearchTerm
+  }, [debouncedSearchTerm]);
 
-  // <--- NEW: Filter recipes *on the frontend* for immediate visual feedback
   // This memoized value updates instantly as 'searchTerm' changes
   const displayedRecipes = useMemo(() => {
     if (!searchTerm) {
@@ -81,7 +76,7 @@ const RecipesPage: React.FC = () => {
 
   return (
     <div className="recipes-page-container">
-      <h1 className="recipes-header">The Rooted Collection</h1>
+      <h1 className="recipes-header">The Wild Harvest</h1>
       <div className="search-filter-container">
         <input
           type="text"
@@ -97,16 +92,7 @@ const RecipesPage: React.FC = () => {
         )}
         {/* Future filter buttons will go here */}
       </div>
-
-      {/* <--- NEW: Conditional rendering for content *below* the search bar */}
-      {/*
-        Loading state is now more nuanced:
-        - If loading AND no recipes have been loaded yet (initial load): show "Loading recipes..."
-        - If error: show error message
-        - If no recipes to display (either fetched or filtered): show "No recipes found" message
-        - Otherwise: show the recipe grid
-      */}
-      {loading && allRecipes.length === 0 ? ( // Only show full loading screen on initial empty load
+      {loading && allRecipes.length === 0 ? (
         <div className="loading-message">Loading recipes...</div>
       ) : error ? (
         <div className="error-message">{error}</div>

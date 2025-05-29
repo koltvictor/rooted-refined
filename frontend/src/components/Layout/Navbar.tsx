@@ -11,7 +11,7 @@ const NavBar: React.FC = () => {
   return (
     <nav className="navbar">
       <div className="navbar-brand">
-        <Link to="/">Rooted & Refined</Link>
+        <Link to="/">Forest & Forage</Link>
       </div>
       <ul className="navbar-links">
         <li>
@@ -21,7 +21,7 @@ const NavBar: React.FC = () => {
           <Link to="/about">About</Link>
         </li>
         <li>
-          <Link to="/contact">Contact</Link> {/* <--- NEW LINK */}
+          <Link to="/contact">Contact</Link>
         </li>
         {user &&
           user.is_admin && ( // Ensure only admin sees Add Recipe

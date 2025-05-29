@@ -1,0 +1,35 @@
+// backend/migrations/YOUR_TIMESTAMP_create_categories_table.js
+
+exports.up = function (knex) {
+  return knex.schema
+    .createTable("categories", function (table) {
+      table.increments("id").primary();
+      table.string("name").notNullable().unique();
+      table.timestamp("created_at").defaultTo(knex.fn.now());
+      table.timestamp("updated_at").defaultTo(knex.fn.now());
+    })
+    .then(() => {
+      // Create the junction table for recipes and categories
+      return knex.schema.createTable("recipe_categories", function (table) {
+        table.integer("recipe_id").unsigned().notNullable();
+        table.integer("category_id").unsigned().notNullable();
+        table.primary(["recipe_id", "category_id"]); // Composite primary key
+        table
+          .foreign("recipe_id")
+          .references("id")
+          .inTable("recipes")
+          .onDelete("CASCADE");
+        table
+          .foreign("category_id")
+          .references("id")
+          .inTable("categories")
+          .onDelete("CASCADE");
+      });
+    });
+};
+
+exports.down = function (knex) {
+  return knex.schema.dropTableIfExists("recipe_categories").then(() => {
+    return knex.schema.dropTableIfExists("categories");
+  });
+};

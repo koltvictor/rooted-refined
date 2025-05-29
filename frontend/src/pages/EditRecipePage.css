@@ -175,3 +175,22 @@
   border: 1px solid #c3e6cb;
   border-radius: var(--border-radius-sm);
 }
+
+.edit-recipe-select-multi {
+  padding: 10px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-sm);
+  font-size: 1em;
+  min-height: 120px; /* Make them tall enough to see multiple options */
+  background-color: var(--color-background-light);
+  cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
+  color: var(--color-text-dark); /* Ensure text is visible */
+}
+
+.edit-recipe-select-multi:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(128, 155, 82, 0.2);
+}
