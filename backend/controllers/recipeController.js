@@ -1,51 +1,20 @@
 // backend/controllers/recipeController.js
 
 const knex = require("knex")(require("../knexfile").development);
+const { isOwnerOrAdmin } = require("../utils/authHelpers");
+const {
+  saveJunctionTableEntries,
+  fetchJunctionTableIds,
+} = require("../utils/dbHelpers");
+const { parseIds } = require("../utils/paramParsers");
 
-// Helper function to check if user is owner or admin
-const isOwnerOrAdmin = (req, recipe) => {
-  return req.user && (req.user.userId === recipe.user_id || req.user.is_admin);
-};
-
-const saveJunctionTableEntries = async (
-  trx,
-  recipeId,
-  table,
-  columnId,
-  itemIds
-) => {
-  if (!itemIds || itemIds.length === 0) return; // Only proceed if there are IDs to insert
-  const entries = itemIds.map((id) => ({
-    recipe_id: recipeId,
-    [columnId]: id,
-  }));
-  await trx(table).insert(entries);
-};
-
-// --- NEW HELPER FUNCTION START ---
 /**
- * Helper function to fetch IDs from junction tables.
- * @param {number} recipeId - The ID of the recipe.
- * @param {string} junctionTable - The name of the junction table (e.g., 'recipe_categories').
- * @param {string} columnId - The name of the column holding the ID in the junction table (e.g., 'category_id').
- * @returns {Promise<Array<number>>} A promise that resolves to an array of IDs.
+ * @desc Create a new recipe
+ * @route POST /api/recipes
+ * @access Private (requires authentication and admin authorization)
+ * @param {object} req - The request object.
+ * @param {object} res - The response object.
  */
-const fetchJunctionTableIds = async (recipeId, junctionTable, columnId) => {
-  try {
-    const result = await knex(junctionTable)
-      .select(columnId)
-      .where({ recipe_id: recipeId });
-    return result.map((row) => row[columnId]);
-  } catch (error) {
-    console.error(
-      `Error fetching IDs from ${junctionTable} for recipe ${recipeId}:`,
-      error
-    );
-    throw error; // Re-throw the error to be caught by the calling function
-  }
-};
-// --- NEW HELPER FUNCTION END ---
-
 exports.createRecipe = async (req, res) => {
   const {
     title,
@@ -66,8 +35,9 @@ exports.createRecipe = async (req, res) => {
     difficulty_levels,
     occasions,
   } = req.body;
-  const user_id = req.user.userId;
+  const user_id = req.user.userId; // User ID from authenticated token
 
+  // Input validation
   if (!title || !instructions || !ingredients || ingredients.length === 0) {
     return res
       .status(400)
@@ -76,7 +46,8 @@ exports.createRecipe = async (req, res) => {
 
   try {
     await knex.transaction(async (trx) => {
-      const [recipeId] = await trx("recipes")
+      // Insert recipe
+      const [newRecipeId] = await trx("recipes")
         .insert({
           user_id,
           title,
@@ -90,6 +61,7 @@ exports.createRecipe = async (req, res) => {
         })
         .returning("id");
 
+      // Process and insert ingredients
       const recipeIngredientsToInsert = [];
       for (const item of ingredients) {
         let ingredient = await trx("ingredients")
@@ -100,9 +72,8 @@ exports.createRecipe = async (req, res) => {
             .insert({ name: item.name.toLowerCase() })
             .returning("*");
         }
-
         recipeIngredientsToInsert.push({
-          recipe_id: recipeId.id,
+          recipe_id: newRecipeId.id,
           ingredient_id: ingredient.id,
           quantity: item.quantity,
           unit: item.unit,
@@ -114,58 +85,59 @@ exports.createRecipe = async (req, res) => {
         await trx("recipe_ingredients").insert(recipeIngredientsToInsert);
       }
 
+      // Save junction table entries for various filter types
       await saveJunctionTableEntries(
         trx,
-        recipeId.id,
+        newRecipeId.id,
         "recipe_categories",
         "category_id",
         categories
       );
       await saveJunctionTableEntries(
         trx,
-        recipeId.id,
+        newRecipeId.id,
         "recipe_cuisines",
         "cuisine_id",
         cuisines
       );
       await saveJunctionTableEntries(
         trx,
-        recipeId.id,
+        newRecipeId.id,
         "recipe_seasons",
         "season_id",
         seasons
       );
       await saveJunctionTableEntries(
         trx,
-        recipeId.id,
+        newRecipeId.id,
         "recipe_dietary_restrictions",
         "dietary_restriction_id",
         dietary_restrictions
       );
       await saveJunctionTableEntries(
         trx,
-        recipeId.id,
+        newRecipeId.id,
         "recipe_cooking_methods",
         "cooking_method_id",
         cooking_methods
       );
       await saveJunctionTableEntries(
         trx,
-        recipeId.id,
+        newRecipeId.id,
         "recipe_main_ingredients",
         "main_ingredient_id",
         main_ingredients
       );
       await saveJunctionTableEntries(
         trx,
-        recipeId.id,
+        newRecipeId.id,
         "recipe_difficulty_levels",
         "difficulty_level_id",
         difficulty_levels
       );
       await saveJunctionTableEntries(
         trx,
-        recipeId.id,
+        newRecipeId.id,
         "recipe_occasions",
         "occasion_id",
         occasions
@@ -173,56 +145,169 @@ exports.createRecipe = async (req, res) => {
 
       res.status(201).json({
         message: "Recipe created successfully!",
-        recipeId: recipeId.id,
+        recipeId: newRecipeId.id,
         title,
         user_id,
       });
     });
   } catch (error) {
-    console.error("Error creating recipe:", error);
+    console.error("Error creating recipe:", error.message); // Log specific message
     res
       .status(500)
       .json({ message: "Server error creating recipe.", error: error.message });
   }
 };
 
-// @desc    Get all recipes
-// @route   GET /api/recipes
-// @access  Public
+/**
+ * @desc Get all recipes with pagination and filtering
+ * @route GET /api/recipes
+ * @access Public
+ * @param {object} req - The request object (query params: search, categories, cuisines, etc., page, limit).
+ * @param {object} res - The response object.
+ */
+
+// ... (your existing createRecipe and helper functions) ...
+
+/**
+ * @desc Get all recipes with pagination and filtering
+ * @route GET /api/recipes
+ * @access Public
+ * @param {object} req - The request object (query params: search, categories, cuisines, etc., page, limit).
+ * @param {object} res - The response object.
+ */
 exports.getRecipes = async (req, res) => {
-  const { search } = req.query; // Get search query parameter
+  const {
+    search,
+    categories,
+    cuisines,
+    seasons,
+    dietary_restrictions,
+    cooking_methods,
+    main_ingredients,
+    difficulty_levels,
+    occasions,
+    page = 1,
+    limit = 10, // Default items per page
+  } = req.query;
+
+  const pageNum = parseInt(page);
+  const limitNum = parseInt(limit);
+
+  if (isNaN(pageNum) || pageNum < 1 || isNaN(limitNum) || limitNum < 1) {
+    return res
+      .status(400)
+      .json({ message: "Invalid page or limit parameters." });
+  }
+
+  const offset = (pageNum - 1) * limitNum;
 
   try {
-    // Start building the base query using 'let' so we can modify it
-    let query = knex("recipes") // <--- IMPORTANT: Initialize your query builder here
-      .select("recipes.*", "users.username")
-      .leftJoin("users", "recipes.user_id", "users.id");
+    // Start building the base query for fetching recipes
+    let baseQuery = knex("recipes").leftJoin(
+      "users",
+      "recipes.user_id",
+      "users.id"
+    );
 
-    // Apply search filter if 'search' query parameter is present
+    // Clone the baseQuery for total count to apply filters without select, limit, or offset
+    let countQueryBuilder = baseQuery.clone();
+
+    // Apply search filter if present (to both baseQuery and countQueryBuilder)
     if (search) {
-      const searchTerm = `%${search.toLowerCase()}%`;
-      query = query.where((builder) => {
+      const searchTerm = `%${String(search).toLowerCase()}%`;
+      baseQuery = baseQuery.where((builder) => {
         builder
-          .whereRaw("LOWER(recipes.title) LIKE ?", [searchTerm]) // Search in title
-          .orWhereRaw("LOWER(recipes.description) LIKE ?", [searchTerm]); // Search in description
+          .whereRaw("LOWER(recipes.title) LIKE ?", [searchTerm])
+          .orWhereRaw("LOWER(recipes.description) LIKE ?", [searchTerm]);
+      });
+      countQueryBuilder = countQueryBuilder.where((builder) => {
+        // Apply to count query too
+        builder
+          .whereRaw("LOWER(recipes.title) LIKE ?", [searchTerm])
+          .orWhereRaw("LOWER(recipes.description) LIKE ?", [searchTerm]);
       });
     }
 
-    const recipes = await query.orderBy("created_at", "desc");
+    // Apply all other filters (to both baseQuery and countQueryBuilder)
+    const filterConditions = [
+      { param: categories, table: "recipe_categories", column: "category_id" },
+      { param: cuisines, table: "recipe_cuisines", column: "cuisine_id" },
+      { param: seasons, table: "recipe_seasons", column: "season_id" },
+      {
+        param: dietary_restrictions,
+        table: "recipe_dietary_restrictions",
+        column: "dietary_restriction_id",
+      },
+      {
+        param: cooking_methods,
+        table: "recipe_cooking_methods",
+        column: "cooking_method_id",
+      },
+      {
+        param: main_ingredients,
+        table: "recipe_main_ingredients",
+        column: "main_ingredient_id",
+      },
+      {
+        param: difficulty_levels,
+        table: "recipe_difficulty_levels",
+        column: "difficulty_level_id",
+      },
+      { param: occasions, table: "recipe_occasions", column: "occasion_id" },
+    ];
 
-    res.status(200).json(recipes);
+    for (const { param, table, column } of filterConditions) {
+      const ids = parseIds(param);
+      if (ids.length > 0) {
+        // Apply joins and where conditions to both queries
+        baseQuery = baseQuery
+          .join(table, "recipes.id", `${table}.recipe_id`)
+          .whereIn(`${table}.${column}`, ids);
+        countQueryBuilder = countQueryBuilder
+          .join(table, "recipes.id", `${table}.recipe_id`)
+          .whereIn(`${table}.${column}`, ids);
+      }
+    }
+
+    // --- NEW: Calculate Total Count ---
+    // Perform a distinct count of recipe IDs based on the filtered query
+    const [totalResult] = await countQueryBuilder.countDistinct(
+      "recipes.id as total_count"
+    );
+    const totalCount = parseInt(totalResult.total_count, 10);
+    // --- END NEW ---
+
+    // Finalize the main recipes query with distinct select, order, limit, and offset
+    const recipes = await baseQuery
+      .distinct("recipes.id") // Ensure distinct recipes
+      .select("recipes.*", "users.username") // Select all recipe columns and username
+      .orderBy("created_at", "desc")
+      .limit(limitNum)
+      .offset(offset);
+
+    res.status(200).json({
+      recipes,
+      currentPage: pageNum,
+      perPage: limitNum,
+      totalItems: totalCount,
+      totalPages: Math.ceil(totalCount / limitNum),
+      hasMore: pageNum * limitNum < totalCount,
+    });
   } catch (error) {
-    console.error("Error fetching recipes:", error);
+    console.error("Error fetching recipes:", error.message);
     res.status(500).json({
       message: "Server error fetching recipes.",
       error: error.message,
     });
   }
 };
-
-// @desc    Get a single recipe by ID with its ingredients
-// @route   GET /api/recipes/:id
-// @access  Public
+/**
+ * @desc Get a single recipe by ID with its ingredients and associated data
+ * @route GET /api/recipes/:id
+ * @access Public (with optional authentication for favorite/rating status)
+ * @param {object} req - The request object.
+ * @param {object} res - The response object.
+ */
 exports.getRecipeById = async (req, res) => {
   const { id } = req.params;
 
@@ -250,28 +335,13 @@ exports.getRecipeById = async (req, res) => {
     // Check if the logged-in user has favorited this recipe
     let isFavorited = false;
     if (req.user && req.user.userId) {
-      // This condition is key!
-      // --- NEW LOGS ---
-      console.log(
-        "User is authenticated (req.user.userId is present). Checking favorite status..."
-      );
-      // --- END NEW LOGS ---
       const favorite = await knex("user_favorites")
         .where({ user_id: req.user.userId, recipe_id: id })
         .first();
-      isFavorited = !!favorite; // Convert to boolean
-      // --- NEW LOGS ---
-      console.log("Result of favorite check (isFavorited):", isFavorited);
-      // --- END NEW LOGS ---
-    } else {
-      // --- NEW LOGS ---
-      console.log(
-        "User is NOT authenticated (req.user.userId is absent). isFavorited will be false."
-      );
-      // --- END NEW LOGS ---
+      isFavorited = !!favorite;
     }
 
-    // <--- NEW: Fetch average rating and current user's rating
+    // Fetch average rating and current user's rating
     const ratingStats = await knex("recipe_ratings")
       .where({ recipe_id: id })
       .select(
@@ -289,42 +359,51 @@ exports.getRecipeById = async (req, res) => {
       currentUserRating = userRating ? userRating.rating : 0;
     }
 
+    // Fetch associated IDs from junction tables
     const categories = await fetchJunctionTableIds(
+      knex,
       id,
       "recipe_categories",
       "category_id"
     );
     const cuisines = await fetchJunctionTableIds(
+      knex,
       id,
       "recipe_cuisines",
       "cuisine_id"
     );
     const seasons = await fetchJunctionTableIds(
+      knex,
       id,
       "recipe_seasons",
       "season_id"
     );
     const dietary_restrictions = await fetchJunctionTableIds(
+      knex,
       id,
       "recipe_dietary_restrictions",
       "dietary_restriction_id"
     );
     const cooking_methods = await fetchJunctionTableIds(
+      knex,
       id,
       "recipe_cooking_methods",
       "cooking_method_id"
     );
     const main_ingredients = await fetchJunctionTableIds(
+      knex,
       id,
       "recipe_main_ingredients",
       "main_ingredient_id"
     );
     const difficulty_levels = await fetchJunctionTableIds(
+      knex,
       id,
       "recipe_difficulty_levels",
       "difficulty_level_id"
     );
     const occasions = await fetchJunctionTableIds(
+      knex,
       id,
       "recipe_occasions",
       "occasion_id"
@@ -334,8 +413,8 @@ exports.getRecipeById = async (req, res) => {
       ...recipe,
       ingredients,
       isFavorited,
-      average_rating: parseFloat(ratingStats.average_rating || 0), // Send as float, not string
-      total_ratings: parseInt(ratingStats.total_ratings || 0), // Send as integer
+      average_rating: parseFloat(ratingStats.average_rating || 0),
+      total_ratings: parseInt(ratingStats.total_ratings || 0),
       current_user_rating: currentUserRating,
       categories,
       cuisines,
@@ -347,18 +426,25 @@ exports.getRecipeById = async (req, res) => {
       occasions,
     });
   } catch (error) {
-    console.error("Error fetching recipe by ID:", error);
+    console.error(`Error fetching recipe ${id}:`, error.message);
     res
       .status(500)
       .json({ message: "Server error fetching recipe.", error: error.message });
   }
 };
-exports.submitRecipeRating = async (req, res) => {
-  const { id: recipeId } = req.params; // Recipe ID from URL
-  const userId = req.user.userId; // User ID from authenticated token
-  const { rating } = req.body; // Rating value (1-5) from request body
 
-  // Basic validation for rating
+/**
+ * @desc Submit or update a recipe rating
+ * @route POST /api/recipes/:id/rate
+ * @access Private
+ * @param {object} req - The request object (params: id, body: { rating }).
+ * @param {object} res - The response object.
+ */
+exports.submitRecipeRating = async (req, res) => {
+  const { id: recipeId } = req.params;
+  const userId = req.user.userId;
+  const { rating } = req.body;
+
   if (rating === undefined || rating < 1 || rating > 5) {
     return res
       .status(400)
@@ -366,25 +452,21 @@ exports.submitRecipeRating = async (req, res) => {
   }
 
   try {
-    // Check if recipe exists
     const recipeExists = await knex("recipes").where({ id: recipeId }).first();
     if (!recipeExists) {
       return res.status(404).json({ message: "Recipe not found." });
     }
 
-    // Check if user has already rated this recipe
     const existingRating = await knex("recipe_ratings")
       .where({ user_id: userId, recipe_id: recipeId })
       .first();
 
     if (existingRating) {
-      // Update existing rating
       await knex("recipe_ratings")
         .where({ user_id: userId, recipe_id: recipeId })
         .update({ rating, updated_at: knex.fn.now() });
       res.status(200).json({ message: "Rating updated successfully." });
     } else {
-      // Insert new rating
       await knex("recipe_ratings").insert({
         user_id: userId,
         recipe_id: recipeId,
@@ -393,16 +475,21 @@ exports.submitRecipeRating = async (req, res) => {
       res.status(201).json({ message: "Rating submitted successfully." });
     }
   } catch (error) {
-    console.error("Error submitting rating:", error);
+    console.error("Error submitting rating:", error.message);
     res.status(500).json({
       message: "Server error submitting rating.",
       error: error.message,
     });
   }
 };
-// @desc    Update a recipe
-// @route   PUT /api/recipes/:id
-// @access  Private (requires authentication and ownership OR admin)
+
+/**
+ * @desc Update an existing recipe
+ * @route PUT /api/recipes/:id
+ * @access Private (requires authentication and ownership OR admin)
+ * @param {object} req - The request object.
+ * @param {object} res - The response object.
+ */
 exports.updateRecipe = async (req, res) => {
   const { id } = req.params;
   const {
@@ -456,8 +543,8 @@ exports.updateRecipe = async (req, res) => {
         updated_at: knex.fn.now(),
       });
 
+      // Clear existing junction table entries and re-insert new ones
       await trx("recipe_ingredients").where({ recipe_id: id }).del();
-
       const recipeIngredientsToInsert = [];
       for (const item of ingredients) {
         let ingredient = await trx("ingredients")
@@ -476,7 +563,6 @@ exports.updateRecipe = async (req, res) => {
           notes: item.notes || null,
         });
       }
-
       if (recipeIngredientsToInsert.length > 0) {
         await trx("recipe_ingredients").insert(recipeIngredientsToInsert);
       }
@@ -550,19 +636,22 @@ exports.updateRecipe = async (req, res) => {
       res.status(200).json({ message: "Recipe updated successfully!" });
     });
   } catch (error) {
-    console.error("Error updating recipe:", error);
+    console.error(`Error updating recipe ${id}:`, error.message);
     res
       .status(500)
       .json({ message: "Server error updating recipe.", error: error.message });
   }
 };
 
-// @desc    Delete a recipe
-// @route   DELETE /api/recipes/:id
-// @access  Private (requires authentication and ownership OR admin)
+/**
+ * @desc Delete a recipe
+ * @route DELETE /api/recipes/:id
+ * @access Private (requires authentication and ownership OR admin)
+ * @param {object} req - The request object.
+ * @param {object} res - The response object.
+ */
 exports.deleteRecipe = async (req, res) => {
   const { id } = req.params;
-  const user_id = req.user.userId;
 
   try {
     const existingRecipe = await knex("recipes").where({ id }).first();
@@ -576,39 +665,40 @@ exports.deleteRecipe = async (req, res) => {
         .json({ message: "Not authorized to delete this recipe." });
     }
 
+    // Note: Database foreign key constraints with ON DELETE CASCADE should handle related entries
     await knex("recipes").where({ id }).del();
 
     res.status(200).json({ message: "Recipe deleted successfully!" });
   } catch (error) {
-    console.error("Error deleting recipe:", error);
+    console.error(`Error deleting recipe ${id}:`, error.message);
     res
       .status(500)
       .json({ message: "Server error deleting recipe.", error: error.message });
   }
 };
 
-// <--- NEW: Toggle Favorite (Add/Remove)
-// @desc    Add or remove a recipe from user favorites
-// @route   POST /api/recipes/:id/favorite
-// @access  Private
+/**
+ * @desc Add or remove a recipe from user favorites
+ * @route POST /api/recipes/:id/favorite
+ * @access Private
+ * @param {object} req - The request object (params: id).
+ * @param {object} res - The response object.
+ */
 exports.toggleFavorite = async (req, res) => {
-  const { id: recipeId } = req.params; // Recipe ID from URL
-  const userId = req.user.userId; // User ID from authenticated token
+  const { id: recipeId } = req.params;
+  const userId = req.user.userId;
 
   try {
-    // Check if recipe exists
     const recipeExists = await knex("recipes").where({ id: recipeId }).first();
     if (!recipeExists) {
       return res.status(404).json({ message: "Recipe not found." });
     }
 
-    // Check if the recipe is already favorited by the user
     const existingFavorite = await knex("user_favorites")
       .where({ user_id: userId, recipe_id: recipeId })
       .first();
 
     if (existingFavorite) {
-      // If exists, remove it (unfavorite)
       await knex("user_favorites")
         .where({ user_id: userId, recipe_id: recipeId })
         .del();
@@ -617,7 +707,6 @@ exports.toggleFavorite = async (req, res) => {
         favorited: false,
       });
     } else {
-      // If not exists, add it (favorite)
       await knex("user_favorites").insert({
         user_id: userId,
         recipe_id: recipeId,
@@ -627,7 +716,10 @@ exports.toggleFavorite = async (req, res) => {
         .json({ message: "Recipe favorited successfully.", favorited: true });
     }
   } catch (error) {
-    console.error("Error toggling favorite status:", error);
+    console.error(
+      `Error toggling favorite status for recipe ${recipeId}:`,
+      error.message
+    );
     res.status(500).json({
       message: "Server error toggling favorite status.",
       error: error.message,
@@ -635,12 +727,15 @@ exports.toggleFavorite = async (req, res) => {
   }
 };
 
-// <--- NEW: Get My Favorites
-// @desc    Get all favorited recipes for the logged-in user
-// @route   GET /api/recipes/my-favorites
-// @access  Private
+/**
+ * @desc Get all favorited recipes for the logged-in user
+ * @route GET /api/recipes/my-favorites
+ * @access Private
+ * @param {object} req - The request object.
+ * @param {object} res - The response object.
+ */
 exports.getMyFavorites = async (req, res) => {
-  const userId = req.user.userId; // User ID from authenticated token
+  const userId = req.user.userId;
 
   try {
     const favoritedRecipes = await knex("user_favorites")
@@ -652,16 +747,16 @@ exports.getMyFavorites = async (req, res) => {
         "recipes.prep_time_minutes",
         "recipes.cook_time_minutes",
         "recipes.servings",
-        "users.username" // Include the username of the recipe creator
+        "users.username"
       )
       .where("user_favorites.user_id", userId)
       .join("recipes", "user_favorites.recipe_id", "recipes.id")
-      .leftJoin("users", "recipes.user_id", "users.id") // Join to get creator's username
-      .orderBy("user_favorites.created_at", "desc"); // Order by when they were favorited
+      .leftJoin("users", "recipes.user_id", "users.id")
+      .orderBy("user_favorites.created_at", "desc");
 
     res.status(200).json(favoritedRecipes);
   } catch (error) {
-    console.error("Error fetching favorited recipes:", error);
+    console.error("Error fetching favorited recipes:", error.message);
     res.status(500).json({
       message: "Server error fetching favorited recipes.",
       error: error.message,

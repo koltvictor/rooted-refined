@@ -17,6 +17,7 @@ import EditRecipePage from "./pages/EditRecipePage";
 import FavoritedRecipesPage from "./pages/FavoritedRecipesPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
+import UserProfilePage from "./pages/UserProfilePage";
 
 // PrivateRoute component (remains the same)
 interface PrivateRouteProps {
@@ -58,6 +59,14 @@ const App: React.FC = () => {
             <Route path="/register" element={<Register />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/contact" element={<ContactPage />} />
+            <Route
+              path="/profile"
+              element={
+                <PrivateRoute>
+                  <UserProfilePage />
+                </PrivateRoute>
+              }
+            />
 
             <Route
               path="/add-recipe"

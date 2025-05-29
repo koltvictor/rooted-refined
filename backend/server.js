@@ -9,6 +9,7 @@ const recipeRoutes = require("./routes/recipeRoutes");
 const pantryRoutes = require("./routes/pantryRoutes");
 const shoppingListRoutes = require("./routes/shoppingListRoutes");
 const dataRoutes = require("./routes/dataRoutes");
+const userRoutes = require("./routes/userRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -43,6 +44,7 @@ app.use("/api/recipes", recipeRoutes);
 app.use("/api/pantry", pantryRoutes);
 app.use("/api/shopping-list", shoppingListRoutes);
 app.use("/api/data", dataRoutes);
+app.use("/api/users", userRoutes);
 
 // Start the server (ONLY ONE CALL)
 app.listen(PORT, () => {

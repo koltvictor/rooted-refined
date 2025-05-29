@@ -39,6 +39,17 @@ interface FilterOptionsResponse {
   occasions: FilterOption[];
 }
 
+// --- NEW: Add Interface for Paginated Recipe Response ---
+interface PaginatedRecipesResponse {
+  recipes: Recipe[];
+  currentPage: number;
+  perPage: number;
+  totalItems: number;
+  totalPages: number;
+  hasMore: boolean;
+}
+// --- END NEW ---
+
 const RecipesPage: React.FC = () => {
   console.log("RecipesPage component rendered");
 
@@ -134,7 +145,8 @@ const RecipesPage: React.FC = () => {
       });
 
       try {
-        const response = await api.get("/recipes", {
+        // --- IMPORTANT CHANGE HERE: Specify response type and access .recipes array ---
+        const response = await api.get<PaginatedRecipesResponse>("/recipes", {
           params: {
             search: debouncedSearchTerm,
             categories: selectedCategories.join(","),
@@ -147,7 +159,11 @@ const RecipesPage: React.FC = () => {
             occasions: selectedOccasions.join(","),
           },
         });
-        setAllRecipes(response.data);
+        // Now, set allRecipes to response.data.recipes
+        setAllRecipes(response.data.recipes);
+        // You might also want to store pagination info if you plan to use it:
+        // setPaginationInfo(response.data);
+        // --- END IMPORTANT CHANGE ---
       } catch (err: any) {
         console.error("Error fetching recipes:", err);
         setError("Failed to load recipes. Please try again later.");
@@ -170,6 +186,7 @@ const RecipesPage: React.FC = () => {
 
   // Memoized value for instant feedback on search
   const displayedRecipes = useMemo(() => {
+    // This part is correct and will receive an array from allRecipes
     if (!searchTerm) {
       return allRecipes;
     }
@@ -293,10 +310,6 @@ const RecipesPage: React.FC = () => {
         <div className="filter-overlay-content-wrapper">
           <div className="filter-overlay-header">
             <h2>Filter Recipes</h2>
-            {/* REMOVE THE CLOSE BUTTON FROM HERE */}
-            {/* <button onClick={toggleFilterOverlay} className="close-filter-button">
-            &times;
-          </button> */}
           </div>
           <div className="filter-overlay-content">
             {filtersLoading ? (

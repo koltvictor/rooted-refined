@@ -30,9 +30,14 @@ const NavBar: React.FC = () => {
             </li>
           )}
         {user && (
-          <li>
-            <Link to="/my-favorites">My Favorites</Link>
-          </li>
+          <>
+            <li>
+              <Link to="/my-favorites">My Favorites</Link>
+            </li>
+            <li>
+              <Link to="/profile">Profile</Link>
+            </li>
+          </>
         )}
       </ul>
       <div className="navbar-auth">
