@@ -299,7 +299,7 @@ const UserProfilePage: React.FC = () => {
 
   return (
     <div className="user-profile-container">
-      <h1 className="profile-header">My Profile</h1>
+      <h1 className="profile-header">{profile?.username}'s Profile</h1>
       {saveMessage && <div className="success-message">{saveMessage}</div>}
       {error && isEditing && <div className="error-message">{error}</div>}{" "}
       {/* Show error if saving fails */}

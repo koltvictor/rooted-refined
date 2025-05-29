@@ -1,13 +1,13 @@
 /* frontend/src/pages/UserProfilePage.css */
 
+/*
+* REVISED: user-profile-container acts primarily as a width limiter and centerer for the page content.
+* It no longer has its own background or box-shadow to reduce nested boxiness.
+*/
 .user-profile-container {
-  /* Increased max-width for a less "skinny" look */
-  max-width: 960px; /* Increased from 800px */
-  margin: var(--spacing-xxl) auto; /* More vertical margin */
-  padding: var(--spacing-xl); /* Increased padding inside the container */
-  background-color: var(--color-background-light);
-  border-radius: var(--border-radius-lg);
-  box-shadow: 0 8px 30px var(--color-shadow-light); /* Stronger, more elegant shadow */
+  max-width: 1200px; /* Make it even wider, same as your main app-container max-width */
+  margin: var(--spacing-xxl) auto;
+  padding: 0 var(--spacing-xxl); /* More horizontal padding for content from edges */
   font-family: "Nunito", sans-serif;
   color: var(--color-text-dark);
 }
@@ -16,93 +16,114 @@
   font-family: "Playfair Display", serif;
   text-align: center;
   color: var(--color-primary-dark);
-  margin-bottom: var(--spacing-xxl); /* More space below header */
-  font-size: 3.2em; /* Slightly larger, more impactful */
+  margin-bottom: var(--spacing-xxl);
+  font-size: 4em; /* Even larger, more dominant header */
   font-weight: 700;
-  letter-spacing: 0.02em; /* Subtle spacing */
+  letter-spacing: 0.05em; /* A bit more spacing */
+  padding-top: var(--spacing-lg);
 }
 
+/*
+* These are the main content boxes now.
+* Their padding is internal, and they naturally fill the width of .user-profile-container.
+*/
 .profile-details-view,
 .profile-form {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg); /* Increased gap between major sections */
+  gap: var(--spacing-xxl);
+  background-color: var(--color-background-light);
+  padding: var(--spacing-xxl); /* Generous padding */
+  border-radius: var(--border-radius-lg);
+  box-shadow: 0 15px 50px var(--color-shadow-light); /* Even stronger shadow */
+  margin-bottom: var(--spacing-xxl);
+  /* No horizontal margin needed here, as .user-profile-container handles overall width */
 }
 
+/*
+* REVISED: profile-card is now a sub-section within profile-details-view,
+* acting as a visually distinct container for user info.
+*/
 .profile-card {
-  background-color: var(--color-background-medium);
-  padding: var(--spacing-xxl); /* More internal padding */
-  border-radius: var(--border-radius-md);
+  background-color: var(
+    --color-background-medium
+  ); /* Slightly darker background for internal card */
+  padding: var(--spacing-xxl); /* Consistent generous padding */
+  border-radius: var(
+    --border-radius-md
+  ); /* Slightly smaller radius than main container */
   text-align: center;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08); /* More pronounced inner shadow */
-  border: 1px solid var(--color-border-light); /* Subtle border */
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05); /* Subtle inner shadow */
+  border: 1px solid var(--color-border-light); /* Subtle border for definition */
 }
 
 .profile-picture {
-  width: 160px; /* Slightly larger image */
-  height: 160px;
+  width: 180px;
+  height: 180px;
   border-radius: 50%;
   object-fit: cover;
-  margin-bottom: var(--spacing-lg); /* More space below picture */
-  border: 5px solid var(--color-primary-light); /* Thicker, more prominent border */
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15); /* Stronger shadow for the picture */
+  margin-bottom: var(--spacing-xl);
+  border: 6px solid var(--color-primary);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2); /* Stronger shadow for picture */
 }
 
 .profile-picture-placeholder {
-  width: 160px;
-  height: 160px;
+  width: 180px;
+  height: 180px;
   border-radius: 50%;
   background-color: var(--color-border-light);
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 1.4em; /* Larger text in placeholder */
+  font-size: 1.6em;
   color: var(--color-text-medium);
-  margin: 0 auto var(--spacing-lg) auto;
-  border: 3px dashed var(--color-border-dark);
+  margin: 0 auto var(--spacing-xl) auto;
+  border: 4px dashed var(--color-border-dark);
 }
 
 .profile-username {
   font-family: "Playfair Display", serif;
-  font-size: 2.5em; /* Larger username */
-  color: var(--color-primary);
+  font-size: 3em; /* Larger, more dominant username */
+  color: var(--color-primary-dark);
   margin-bottom: var(--spacing-sm);
   font-weight: 700;
 }
 
 .profile-name {
-  font-size: 1.2em; /* Slightly larger name */
+  font-size: 1.4em; /* More prominent name */
   color: var(--color-text-medium);
   margin-bottom: var(--spacing-sm);
 }
 
 .profile-email {
-  font-size: 1.05em; /* Subtle increase */
+  font-size: 1.15em;
   color: var(--color-text-light);
-  margin-bottom: var(--spacing-lg); /* More space below email */
+  margin-bottom: var(--spacing-xl);
 }
 
 .profile-bio {
   font-style: italic;
   color: var(--color-text-medium);
-  background-color: var(--color-background-light);
-  padding: var(--spacing-lg); /* More padding for bio box */
+  background-color: var(
+    --color-background-light
+  ); /* Lighter bio background for contrast */
+  padding: var(--spacing-xl);
   border-radius: var(--border-radius-md);
-  margin-bottom: var(--spacing-xl); /* More space below bio */
-  line-height: 1.7; /* Increased line height for readability */
-  text-align: justify; /* Justify text for a cleaner block */
-  border: 1px dashed var(--color-border-light); /* Dashed border for style */
+  margin-bottom: var(--spacing-xxl);
+  line-height: 1.8;
+  text-align: center;
+  border: 1px dashed var(--color-border-light); /* Dashed border for softer feel */
 }
 
 .profile-section h3 {
   font-family: "Playfair Display", serif;
-  font-size: 1.6em; /* Slightly larger section headings */
-  color: var(--color-text-dark);
-  margin-top: var(--spacing-xl); /* More space above section headings */
+  font-size: 2em; /* Larger section headings */
+  color: var(--color-primary);
+  margin-top: var(--spacing-xxl);
   margin-bottom: var(--spacing-md);
-  border-bottom: 2px solid var(--color-primary-light); /* Thicker, colored border */
+  border-bottom: 3px solid var(--color-primary-light);
   padding-bottom: var(--spacing-sm);
-  text-align: center; /* Center section headings */
+  text-align: center;
 }
 
 .profile-tags-list {
@@ -110,111 +131,124 @@
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-md); /* Increased gap between tags */
+  gap: var(--spacing-lg);
   justify-content: center;
-  margin-bottom: var(--spacing-md); /* Space below tags list */
+  margin-bottom: var(--spacing-md);
 }
 
 .profile-tag {
   background-color: var(--color-secondary);
   color: var(--color-text-white);
-  padding: var(--spacing-sm) var(--spacing-lg); /* More padding for tags */
-  border-radius: var(--border-radius-md); /* Slightly larger radius */
-  font-size: 0.95em; /* Slightly larger text in tags */
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--border-radius-lg);
+  font-size: 1em;
   white-space: nowrap;
-  transition: transform 0.2s ease, background-color 0.2s ease;
+  transition: transform 0.2s ease, background-color 0.2s ease,
+    box-shadow 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .profile-tag:hover {
-  transform: translateY(-3px); /* Subtle lift on hover */
-  background-color: var(--color-accent-blue); /* Different color on hover */
+  transform: translateY(-4px);
+  background-color: var(--color-accent-blue);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 }
 
 .profile-links-section {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md); /* Increased gap between link buttons */
-  margin-top: var(--spacing-xl);
-  padding-top: var(--spacing-lg); /* More padding above the links section */
-  border-top: 1px dashed var(--color-border-medium); /* Darker dashed border */
+  gap: var(--spacing-lg); /* More space between buttons */
+  margin-top: var(--spacing-xxl);
+  padding-top: var(--spacing-xl);
+  border-top: 2px dashed var(--color-border-medium);
 }
 
 .profile-link-button,
 .edit-profile-button,
 .update-password-button {
-  /* Applied consistent styling to these buttons */
   display: block;
   width: 100%;
-  padding: var(--spacing-md) var(--spacing-lg); /* Larger padding for all main buttons */
+  padding: var(--spacing-md) var(--spacing-xl); /* Larger padding for all main buttons */
   text-align: center;
   text-decoration: none;
-  border-radius: var(--border-radius-md); /* Slightly larger radius */
+  border-radius: var(--border-radius-md);
   transition: background-color 0.2s ease, transform 0.1s ease,
     box-shadow 0.2s ease;
-  font-weight: 700; /* Bolder text for buttons */
+  font-weight: 700;
   border: none;
   cursor: pointer;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Subtle button shadow */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Consistent button shadow */
 }
 
 .edit-profile-button {
   background-color: var(--color-primary);
   color: var(--color-text-white);
-  margin-bottom: var(--spacing-md); /* Space below edit button */
+  margin-bottom: var(--spacing-md);
 }
 
 .update-password-button {
-  background-color: var(
-    --color-secondary
-  ); /* Using secondary for update password */
+  background-color: var(--color-accent-blue);
   color: var(--color-text-white);
-  margin-top: var(--spacing-md); /* Space above update password button */
+  margin-top: var(--spacing-md);
 }
 
 .profile-link-button {
-  background-color: var(--color-accent-blue); /* Use accent color for links */
+  background-color: var(--color-secondary);
   color: var(--color-text-white);
 }
 
 .profile-link-button:hover,
 .edit-profile-button:hover,
 .update-password-button:hover {
-  transform: translateY(-3px); /* Stronger lift on hover */
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2); /* Stronger shadow on hover */
+  transform: translateY(-5px); /* Even stronger lift on hover */
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.3); /* Stronger shadow on hover */
 }
 
 .edit-profile-button:hover {
-  background-color: var(--color-button-hover); /* Primary hover color */
+  background-color: var(--color-button-hover);
 }
 
 .update-password-button:hover {
-  background-color: #a3613c; /* Custom darker shade for secondary hover */
+  background-color: #5c8491; /* Darker accent blue on hover */
 }
 
 .profile-link-button:hover {
-  background-color: #5c8491; /* Custom darker shade for accent blue hover */
+  background-color: #a3613c; /* Darker secondary on hover */
 }
 
-/* Form Styles - General improvements for all forms */
+/* Form Styles - General improvements for all forms (Edit Profile form) */
+/*
+* REVISED: profile-form is now the main "box" when in edit mode.
+* It gets background, padding, and shadow.
+*/
+.profile-form {
+  /* Removed horizontal margin, padding is now internal */
+  background-color: var(
+    --color-background-light
+  ); /* Main background for the form content area */
+  padding: var(--spacing-xxl); /* Generous padding for the main form area */
+  border-radius: var(--border-radius-lg);
+  box-shadow: 0 12px 40px var(--color-shadow-light); /* Deeper, more elegant shadow */
+  margin-bottom: var(--spacing-xxl); /* Space below the main form */
+}
+
 .form-label {
   display: flex;
   flex-direction: column;
-  margin-bottom: var(--spacing-lg); /* More space between form fields */
-  font-weight: 700; /* Bolder labels */
+  margin-bottom: var(--spacing-xl); /* More space between form fields */
+  font-weight: 700;
   color: var(--color-text-dark);
-  font-size: 1.1em; /* Slightly larger label text */
+  font-size: 1.2em; /* Larger label text */
 }
 
 .form-input,
 .form-textarea {
-  padding: var(--spacing-md); /* Larger padding for input fields */
-  border: 1px solid var(--color-border-medium); /* Slightly darker border */
-  border-radius: var(--border-radius-md); /* Match other elements */
-  font-size: 1.05em; /* Slightly larger text in inputs */
-  margin-top: var(--spacing-sm); /* More space between label and input */
-  background-color: var(
-    --color-background-light
-  ); /* Lighter input background */
+  padding: var(--spacing-lg); /* Even larger padding for input fields */
+  border: 1px solid var(--color-border-medium);
+  border-radius: var(--border-radius-md);
+  font-size: 1.1em; /* Larger text in inputs */
+  margin-top: var(--spacing-sm);
+  background-color: var(--color-background-medium); /* Use medium for inputs */
   color: var(--color-text-dark);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -223,73 +257,80 @@
 .form-textarea:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px rgba(128, 155, 82, 0.3); /* Stronger focus ring */
+  box-shadow: 0 0 0 6px rgba(128, 155, 82, 0.4); /* Stronger, more prominent focus ring */
 }
 
 .form-textarea {
-  min-height: 100px; /* Taller textarea */
+  min-height: 150px; /* Even taller textarea */
 }
 
+/*
+* REVISED: form-group for sub-sections within the form.
+* They have a distinct but lighter visual presence.
+*/
 .form-group {
-  margin-top: var(--spacing-xl); /* More space above groups */
-  margin-bottom: var(--spacing-lg);
-  padding: var(--spacing-xl); /* More padding for form groups */
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--border-radius-lg); /* Match main container radius */
-  background-color: var(--color-background-medium);
+  margin-top: var(--spacing-xxl);
+  margin-bottom: var(--spacing-xl);
+  padding: var(--spacing-xl);
+  border: 1px dashed var(--color-border-medium); /* Dashed border for softer separation */
+  border-radius: var(--border-radius-lg);
+  background-color: var(
+    --color-background-light
+  ); /* Lighter background than the main form */
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05); /* Subtle inner shadow */
 }
 
 .form-group h3 {
-  font-size: 1.6em; /* Match section headings */
-  border-bottom: 2px solid var(--color-primary-light); /* Match section heading border */
-  text-align: center; /* Center heading */
+  font-size: 1.8em;
+  border-bottom: 2px solid var(--color-secondary); /* Use secondary color for form group heading borders */
+  text-align: center;
+  margin-bottom: var(--spacing-lg);
 }
 
 .dietary-restrictions-grid {
   display: grid;
   grid-template-columns: repeat(
     auto-fill,
-    minmax(180px, 1fr)
-  ); /* Wider min-width for checkboxes */
-  gap: var(--spacing-md); /* Increased gap between checkboxes */
-  margin-top: var(--spacing-lg); /* Space above grid */
+    minmax(220px, 1fr)
+  ); /* Even wider min-width */
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
 }
 
 .filter-checkbox-label {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm); /* More space between checkbox and label */
+  gap: var(--spacing-md);
   cursor: pointer;
-  font-size: 1.05em; /* Slightly larger checkbox labels */
-  color: var(--color-text-medium);
+  font-size: 1.15em; /* Larger checkbox labels */
+  color: var(--color-text-dark); /* Darker text for more readability */
 }
 
 .filter-checkbox-label input[type="checkbox"] {
-  width: 1.2em; /* Slightly larger checkbox icon */
-  height: 1.2em;
+  width: 1.4em; /* Larger checkbox icon */
+  height: 1.4em;
   accent-color: var(--color-primary);
   cursor: pointer;
 }
 
 .form-actions {
   display: flex;
-  gap: var(--spacing-md); /* Increased gap between action buttons */
-  justify-content: center; /* Center action buttons */
-  margin-top: var(--spacing-xl); /* More space above action buttons */
+  gap: var(--spacing-lg); /* Larger gap between action buttons */
+  justify-content: center;
+  margin-top: var(--spacing-xxl);
 }
 
 .save-button,
 .cancel-button {
-  padding: var(--spacing-md) var(--spacing-lg); /* Larger padding for these buttons */
+  padding: var(--spacing-lg) var(--spacing-xxl); /* More generous padding */
   border: none;
   border-radius: var(--border-radius-md);
-  font-size: 1.05em; /* Slightly larger text */
+  font-size: 1.15em; /* Larger text */
   cursor: pointer;
   transition: background-color 0.2s ease, transform 0.1s ease,
     box-shadow 0.2s ease;
-  font-weight: 700; /* Bolder text */
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Subtle button shadow */
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Consistent button shadow */
 }
 
 .save-button {
@@ -299,8 +340,8 @@
 
 .save-button:hover:not(:disabled) {
   background-color: var(--color-button-hover);
-  transform: translateY(-3px);
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
 }
 
 .save-button:disabled {
@@ -316,22 +357,19 @@
 
 .cancel-button:hover {
   background-color: #888;
-  transform: translateY(-3px);
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
 }
 
 .success-message {
-  background-color: var(--color-success-light);
-  color: var(--color-success-dark);
-  border: 1px solid var(--color-success-dark);
+  background-color: #e6ffe6; /* Direct light green */
+  color: #339933; /* Direct darker green */
+  border: 1px solid #339933;
   padding: var(--spacing-md);
   border-radius: var(--border-radius-sm);
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-lg); /* More space below messages */
   text-align: center;
   font-weight: 600;
-  /* Define success colors in global.css if not already */
-  --color-success-light: #e6ffe6; /* Light green */
-  --color-success-dark: #339933; /* Darker green */
 }
 
 .error-message {
@@ -340,20 +378,19 @@
   border: 1px solid var(--color-accent-red);
   padding: var(--spacing-md);
   border-radius: var(--border-radius-sm);
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
   text-align: center;
   font-weight: 600;
 }
 
-/* Password Overlay Styles (Already somewhat styled, but ensure consistency) */
+/* Password Overlay Styles (Enhanced for consistency) */
 .password-overlay-backdrop {
-  /* ... (remains mostly same, but ensures full screen coverage) ... */
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw; /* Use vw to ensure full width */
-  height: 100vh; /* Use vh to ensure full height */
-  background-color: rgba(0, 0, 0, 0.7); /* Slightly darker overlay backdrop */
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.75); /* Slightly darker backdrop */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -362,11 +399,11 @@
 
 .password-overlay-content {
   background-color: var(--color-background-light);
-  padding: var(--spacing-xxl); /* More generous padding */
+  padding: var(--spacing-xxl);
   border-radius: var(--border-radius-lg);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); /* Stronger shadow for the modal */
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4); /* Even stronger shadow for modal */
   width: 90%;
-  max-width: 550px; /* Slightly wider max-width for overlay */
+  max-width: 600px; /* Wider max-width for overlay */
   position: relative;
   display: flex;
   flex-direction: column;
@@ -376,14 +413,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-xl); /* More space below header */
+  margin-bottom: var(--spacing-xl);
   padding-bottom: var(--spacing-md);
-  border-bottom: 2px solid var(--color-primary-light); /* Thicker border */
+  border-bottom: 3px solid var(--color-primary-light); /* Thicker border */
 }
 
 .password-overlay-header h2 {
   font-family: "Playfair Display", serif;
-  font-size: 2.2em; /* Larger heading */
+  font-size: 2.5em; /* Larger heading */
   color: var(--color-primary-dark);
   margin: 0;
 }
@@ -391,43 +428,149 @@
 .close-password-overlay-button {
   background: none;
   border: none;
-  font-size: 2.5em; /* Larger X icon */
+  font-size: 3em; /* Larger X icon */
   color: var(--color-text-light);
   cursor: pointer;
   padding: 0;
   line-height: 1;
-  transition: color 0.2s ease;
+  transition: color 0.2s ease, transform 0.2s ease;
 }
 
 .close-password-overlay-button:hover {
   color: var(--color-accent-red);
-  transform: rotate(90deg); /* Little spin effect */
+  transform: rotate(90deg);
 }
 
 .password-change-form {
-  gap: var(--spacing-lg); /* More gap in password form */
+  gap: var(--spacing-xl); /* More gap in password form */
 }
 
 .password-overlay-actions {
-  justify-content: center; /* Center buttons in overlay actions */
-  gap: var(--spacing-md); /* Consistent gap */
-  margin-top: var(--spacing-xl); /* More space above buttons */
+  justify-content: center;
+  gap: var(--spacing-lg); /* More consistent gap */
+  margin-top: var(--spacing-xl);
+}
+
+/* Profile Picture Upload Specific Styles */
+.profile-picture-upload-group {
+  text-align: center;
+  margin-bottom: var(--spacing-xxl); /* More space below the entire group */
+}
+
+.profile-picture-preview-container {
+  width: 200px; /* Even larger preview area */
+  height: 200px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 5px solid var(--color-primary-light);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15); /* Stronger shadow */
+  margin: 0 auto var(--spacing-lg) auto;
+}
+
+.profile-picture-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-picture-placeholder.large-placeholder {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  background-color: var(--color-border-light);
+  font-size: 1.8em; /* Larger text */
+  color: var(--color-text-medium);
+}
+
+.file-upload-label {
+  align-items: center;
+  margin-top: var(--spacing-xl); /* More space above file input */
+  margin-bottom: var(--spacing-md); /* Space below label for button */
+}
+
+.file-input {
+  padding: var(--spacing-md); /* Consistent padding */
+  border: 1px solid var(--color-border-medium);
+  background-color: var(--color-background-medium);
+  cursor: pointer;
+  width: 100%;
+  margin-top: var(--spacing-sm);
+  border-radius: var(--border-radius-md); /* Rounded corners */
+}
+
+.file-input::file-selector-button {
+  background-color: var(--color-secondary);
+  color: var(--color-text-white);
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-lg); /* Larger button */
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  margin-right: var(--spacing-md);
+  font-weight: 600;
+}
+
+.file-input::file-selector-button:hover {
+  background-color: #a3613c;
+  transform: translateY(-2px);
+}
+
+.clear-profile-picture-button {
+  background-color: var(--color-accent-red);
+  color: var(--color-text-white);
+  padding: var(--spacing-md) var(--spacing-lg); /* Larger padding */
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-size: 1.05em; /* Larger text */
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease,
+    box-shadow 0.2s ease;
+  margin-top: var(--spacing-md);
+  width: auto;
+  align-self: center;
+  font-weight: 700; /* Bolder text */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.clear-profile-picture-button:hover {
+  background-color: #a04040;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
 }
 
 /* Responsive adjustments */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .user-profile-container {
-    padding: var(--spacing-lg);
+    max-width: 95%;
     margin: var(--spacing-xl) auto;
+    padding: 0 var(--spacing-md); /* Adjust horizontal padding */
   }
 
   .profile-header {
-    font-size: 2.5em;
+    font-size: 3.2em;
+  }
+
+  .profile-card,
+  .profile-form {
+    padding: var(--spacing-xl);
+    margin: 0; /* Remove horizontal margin as container handles it */
+  }
+}
+
+@media (max-width: 768px) {
+  .user-profile-container {
+    padding: 0 var(--spacing-sm); /* Even less padding on very small */
+    margin: var(--spacing-lg) auto;
+  }
+
+  .profile-header {
+    font-size: 2.8em;
     margin-bottom: var(--spacing-xl);
   }
 
   .profile-username {
-    font-size: 2em;
+    font-size: 2.4em;
   }
 
   .profile-card {
@@ -436,8 +579,8 @@
 
   .profile-picture,
   .profile-picture-placeholder {
-    width: 120px;
-    height: 120px;
+    width: 140px;
+    height: 140px;
   }
 
   .profile-bio {
@@ -448,7 +591,7 @@
   .profile-section h3,
   .form-group h3,
   .password-overlay-header h2 {
-    font-size: 1.4em;
+    font-size: 1.8em;
   }
 
   .dietary-restrictions-grid {
@@ -466,9 +609,11 @@
   .edit-profile-button,
   .update-password-button,
   .save-button,
-  .cancel-button {
+  .cancel-button,
+  .clear-profile-picture-button {
+    /* Include clear button */
     width: 100%;
-    padding: var(--spacing-md); /* Adjust padding for smaller buttons */
+    padding: var(--spacing-md);
     font-size: 1em;
   }
 
@@ -478,97 +623,52 @@
   }
 
   .close-password-overlay-button {
-    font-size: 2em;
+    font-size: 2.2em;
+  }
+
+  .file-input::file-selector-button {
+    margin-right: var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-md);
+    font-size: 0.9em;
   }
 }
-.profile-picture-upload-group {
-  text-align: center; /* Center the image and file input */
-}
 
-.profile-picture-preview-container {
-  margin-bottom: var(--spacing-md);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 180px; /* Larger container for preview */
-  height: 180px;
-  border-radius: 50%;
-  overflow: hidden;
-  border: 4px solid var(--color-primary-light);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  margin: 0 auto var(--spacing-lg) auto; /* Center and provide space below */
-}
+@media (max-width: 480px) {
+  .profile-header {
+    font-size: 2.2em;
+  }
 
-.profile-picture-preview {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+  .profile-username {
+    font-size: 2em;
+  }
 
-.profile-picture-placeholder.large-placeholder {
-  width: 100%;
-  height: 100%;
-  border: none; /* Remove border when inside preview container */
-  border-radius: 0; /* Remove border-radius when inside preview container */
-  background-color: var(--color-border-light);
-  font-size: 1.5em;
-  color: var(--color-text-medium);
-}
+  .profile-card {
+    padding: var(--spacing-md);
+  }
 
-.file-upload-label {
-  /* Inherits form-label styles */
-  align-items: center; /* Center label text with input below */
-}
+  .profile-picture-upload-group {
+    padding: var(--spacing-md);
+  }
 
-.file-input {
-  /* Basic styling, let the browser handle much of the input[type="file"] style */
-  border: 1px solid var(--color-border-light);
-  padding: var(--spacing-sm);
-  background-color: var(--color-background-medium);
-  cursor: pointer;
-  width: 100%;
-  margin-top: var(--spacing-sm);
-}
+  .form-group {
+    padding: var(--spacing-md);
+  }
 
-.file-input::file-selector-button {
-  /* Style the actual button part of the file input */
-  background-color: var(--color-secondary);
-  color: var(--color-text-white);
-  border: none;
-  padding: var(--spacing-xs) var(--spacing-md);
-  border-radius: var(--border-radius-sm);
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  margin-right: var(--spacing-md);
-}
+  .form-input,
+  .form-textarea {
+    padding: var(--spacing-sm);
+    font-size: 0.95em;
+  }
 
-.file-input::file-selector-button:hover {
-  background-color: #a3613c; /* Darker secondary on hover */
-}
+  .password-overlay-content {
+    padding: var(--spacing-md);
+  }
 
-.clear-profile-picture-button {
-  background-color: var(--color-accent-red);
-  color: var(--color-text-white);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: none;
-  border-radius: var(--border-radius-sm);
-  font-size: 1em;
-  cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.1s ease;
-  margin-top: var(--spacing-md); /* Space below file input */
-  width: auto; /* Allow button to size to content */
-  align-self: center; /* Center the button in its container */
-  font-weight: 600;
-}
+  .password-overlay-header h2 {
+    font-size: 2em;
+  }
 
-.clear-profile-picture-button:hover {
-  background-color: #a04040;
-  transform: translateY(-2px);
-}
-
-@media (max-width: 768px) {
-  .profile-picture-preview-container {
-    width: 150px;
-    height: 150px;
+  .close-password-overlay-button {
+    font-size: 2em;
   }
 }
