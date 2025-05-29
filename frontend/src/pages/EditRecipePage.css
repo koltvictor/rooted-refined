@@ -1,0 +1,177 @@
+/* frontend/src/pages/EditRecipePage.css */
+
+.edit-recipe-container {
+  max-width: 800px;
+  margin: var(--spacing-lg) auto; /* Use global spacing */
+  padding: var(--spacing-lg);
+  background-color: var(--color-background-light);
+  border-radius: var(--border-radius-lg);
+  box-shadow: 0 4px 12px var(--color-shadow-light);
+  font-family: "Nunito", sans-serif;
+}
+
+.edit-recipe-header {
+  font-family: "Playfair Display", serif;
+  text-align: center;
+  color: var(--color-text-dark);
+  margin-bottom: var(--spacing-xl);
+  font-size: 2.5em;
+}
+
+.edit-recipe-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.edit-recipe-section {
+  margin-bottom: var(--spacing-xl);
+  padding: var(--spacing-lg);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-md);
+  background-color: var(--color-background-medium);
+}
+
+.edit-recipe-section-header {
+  font-family: "Playfair Display", serif;
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-md);
+  font-size: 1.5em;
+  border-bottom: 1px solid var(--color-primary);
+  padding-bottom: var(--spacing-sm);
+}
+
+.edit-recipe-form-group {
+  margin-bottom: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+}
+
+.edit-recipe-label {
+  margin-bottom: var(--spacing-xs);
+  font-weight: 600;
+  color: var(--color-text-medium);
+  font-size: 0.95em;
+}
+
+.edit-recipe-input,
+.edit-recipe-textarea {
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-sm);
+  font-size: 1em;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.edit-recipe-textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.edit-recipe-time-input-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm); /* Spacing between hour/minute inputs and labels */
+}
+
+.edit-recipe-time-input {
+  width: 80px; /* Specific width for hour/minute inputs */
+  text-align: center;
+}
+
+.edit-recipe-time-separator {
+  font-weight: 600;
+  color: var(--color-text-medium);
+  white-space: nowrap; /* Prevent "hrs" or "mins" from wrapping */
+}
+
+.edit-recipe-ingredient-row {
+  display: flex;
+  flex-wrap: wrap; /* Allow wrapping on smaller screens */
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+  align-items: center;
+}
+
+.edit-recipe-ingredient-input,
+.edit-recipe-ingredient-input-qty,
+.edit-recipe-ingredient-input-unit,
+.edit-recipe-ingredient-input-notes {
+  flex: 1; /* Allow inputs to grow */
+  padding: var(--spacing-xs);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-sm);
+  font-size: 0.9em;
+  box-sizing: border-box;
+  min-width: 80px; /* Base min-width */
+}
+
+.edit-recipe-ingredient-input-qty {
+  flex: 0 0 60px; /* Fixed width for quantity */
+}
+.edit-recipe-ingredient-input-unit {
+  flex: 0 0 100px; /* Fixed width for unit */
+}
+
+.edit-recipe-add-button,
+.edit-recipe-remove-button {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+.edit-recipe-add-button {
+  background-color: var(--color-success-color);
+  color: var(--color-text-white);
+  align-self: flex-start;
+  margin-top: var(--spacing-sm);
+}
+.edit-recipe-add-button:hover {
+  background-color: #218838; /* Darker green */
+}
+
+.edit-recipe-remove-button {
+  background-color: var(--color-danger-color);
+  color: var(--color-text-white);
+  min-width: 30px; /* Ensure button is not too small */
+}
+.edit-recipe-remove-button:hover {
+  background-color: #c82333; /* Darker red */
+}
+
+.edit-recipe-submit-button {
+  padding: var(--spacing-md) var(--spacing-xl);
+  background-color: var(--color-primary);
+  color: var(--color-text-white);
+  border: none;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  font-size: 1.1em;
+  font-weight: 600;
+  margin-top: var(--spacing-lg);
+  align-self: center;
+  transition: background-color 0.2s ease;
+}
+
+.edit-recipe-submit-button:hover {
+  background-color: var(--color-button-hover);
+}
+
+.edit-recipe-submit-button:disabled {
+  background-color: var(--color-secondary);
+  cursor: not-allowed;
+}
+
+.edit-recipe-message {
+  text-align: center;
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm);
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+  border-radius: var(--border-radius-sm);
+}

@@ -1,0 +1,123 @@
+/* frontend/src/styles/global.css */
+
+/* Basic Reset & Box Sizing */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Global Font and Body Styles */
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Nunito", sans-serif; /* Applied Nunito to body */
+  line-height: 1.6;
+  font-weight: 400; /* Regular weight for body */
+  background-color: var(--color-background-light); /* Using new variable */
+  color: var(--color-text-dark); /* Using new variable */
+}
+
+/* CSS Variables: Refined Palette for Elegance, Freshness, Warmth */
+:root {
+  /* Neutrals & Backgrounds */
+  --color-background-light: #fbfbfb; /* Almost white for clean canvas */
+  --color-background-medium: #f5f5f5; /* Very light grey for subtle sections */
+  --color-background-dark: #333333; /* Deep charcoal for header/footer */
+  --color-border-light: #e0e0e0; /* Soft light grey border */
+  --color-shadow-light: rgba(0, 0, 0, 0.08); /* Subtle shadow */
+
+  /* Text Colors */
+  --color-text-dark: #2c3e50; /* Dark navy/charcoal for main text, elegant */
+  --color-text-medium: #555555; /* Medium grey for descriptions */
+  --color-text-light: #888888; /* Lighter grey for subtle info */
+  --color-text-white: #ffffff; /* White for contrast on dark backgrounds */
+
+  /* Primary & Accent Colors (Inspired by Fresh/Gourmet Food) */
+  --color-primary: #809b52; /* Muted Olive Green (herbs, fresh veggies) */
+  --color-secondary: #c7754c; /* Warm Terracotta/Peach (roasted peaches, warmth) */
+  --color-accent-blue: #70a0af; /* Soft Teal/Blue (clean, refreshing) */
+  --color-accent-red: #b54f4f; /* Muted Berry Red (strawberries, balsamic) */
+  --color-button-hover: #6a8246; /* Slightly darker green for primary button hover */
+  --color-link-hover: #5a7b3d; /* Green for link hover */
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+
+  /* Border Radius */
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+}
+
+/* Typography Defaults */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "Playfair Display", serif; /* Applied Playfair Display to headings */
+  color: var(--color-text-dark);
+  margin-bottom: var(--spacing-md);
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: 3em; /* Adjust as needed */
+  font-weight: 700;
+}
+
+h2 {
+  font-size: 2.2em;
+  font-weight: 600;
+}
+
+h3 {
+  font-size: 1.8em;
+  font-weight: 600;
+}
+
+a {
+  color: var(--color-primary); /* Default link color */
+  text-decoration: none;
+  transition: color 0.2s ease-in-out;
+}
+
+a:hover {
+  color: var(--color-link-hover);
+  text-decoration: underline;
+}
+
+/* #root is the container where your React app mounts */
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Main App Container for Centering - Now using new variables */
+.app-container {
+  max-width: 1200px;
+  margin: var(--spacing-lg) auto; /* Top/bottom margin */
+  padding: var(--spacing-lg);
+  flex-grow: 1;
+  background-color: var(--color-background-light);
+  border-radius: var(--border-radius-lg); /* Larger radius for chic feel */
+  box-shadow: 0 8px 20px var(--color-shadow-light); /* Deeper shadow */
+}

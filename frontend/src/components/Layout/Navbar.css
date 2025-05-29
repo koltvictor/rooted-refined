@@ -1,0 +1,147 @@
+/* frontend/src/components/Layout/Navbar.css */
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-xl); /* Increased padding for more space */
+  background-color: var(
+    --color-background-dark
+  ); /* Deep charcoal from global */
+  color: var(--color-text-white); /* White text for contrast */
+  box-shadow: 0 6px 18px var(--color-shadow-light); /* Slightly deeper, softer shadow */
+  width: 100%;
+  position: sticky; /* Makes navbar stick to the top */
+  top: 0;
+  z-index: 1000; /* Ensures it stays on top of other content */
+  flex-wrap: wrap; /* Allow wrapping on smaller screens */
+  gap: var(--spacing-md); /* Space between sections on wrap */
+}
+
+.navbar-brand {
+  flex-shrink: 0; /* Prevent shrinking */
+}
+
+.navbar-brand a {
+  font-family: "Playfair Display", serif; /* Elegant heading font for brand */
+  color: var(--color-text-white);
+  text-decoration: none;
+  font-size: 2.2em; /* More impactful brand name */
+  font-weight: 700;
+  transition: color 0.2s ease;
+  letter-spacing: 0.05em; /* Subtle letter spacing for a refined look */
+}
+
+.navbar-brand a:hover {
+  color: var(--color-primary); /* Primary color on hover for brand */
+}
+
+.navbar-links {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex-grow: 1; /* Allow links section to take available space */
+  justify-content: center; /* Center links */
+  flex-wrap: wrap; /* Allow links to wrap */
+  gap: var(--spacing-lg); /* Space between links */
+}
+
+.navbar-links li a {
+  color: var(--color-text-white);
+  text-decoration: none;
+  font-size: 1.1em; /* Slightly larger font for readability */
+  font-weight: 600; /* Bolder for prominence */
+  padding: var(--spacing-xs) 0; /* Vertical padding for hover effect */
+  transition: color 0.2s ease, border-bottom 0.2s ease;
+  border-bottom: 2px solid transparent; /* Transparent border for hover effect */
+}
+
+.navbar-links li a:hover,
+.navbar-links li a.active {
+  /* Add .active class for current page if you implement it */
+  color: var(--color-primary); /* Muted olive green on hover */
+  border-bottom-color: var(--color-primary); /* Underline effect */
+}
+
+.navbar-auth {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0; /* Prevent shrinking */
+  gap: var(--spacing-md); /* Space between auth elements */
+}
+
+.navbar-welcome {
+  color: var(--color-text-white);
+  font-size: 1em;
+  font-weight: 500;
+  white-space: nowrap; /* Prevent text from wrapping */
+}
+
+/* Refined Navbar Buttons (Login/Register/Logout) */
+.navbar-button {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-text-white); /* White border for clean look */
+  background-color: transparent; /* Transparent background */
+  color: var(--color-text-white);
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  font-size: 1em;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease,
+    border-color 0.2s ease;
+  white-space: nowrap; /* Prevent button text from wrapping */
+}
+
+.navbar-button:hover {
+  background-color: rgba(
+    255,
+    255,
+    255,
+    0.1
+  ); /* Subtle white overlay on hover */
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--color-text-white); /* Text stays white */
+}
+
+/* Specific logout button styling - more refined */
+.navbar-button.logout {
+  border-color: var(--color-accent-red); /* Muted berry red border */
+  color: var(--color-accent-red); /* Muted berry red text */
+}
+
+.navbar-button.logout:hover {
+  background-color: var(--color-accent-red); /* Fills with red on hover */
+  color: var(--color-text-white); /* Text becomes white on hover */
+  border-color: var(--color-accent-red);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .navbar {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: var(--spacing-md);
+  }
+
+  .navbar-brand {
+    margin-bottom: var(--spacing-md);
+  }
+
+  .navbar-links {
+    justify-content: flex-start;
+    width: 100%; /* Take full width */
+    margin-bottom: var(--spacing-md);
+  }
+
+  .navbar-auth {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar-links {
+    gap: var(--spacing-md); /* Reduce gap further on very small screens */
+  }
+}

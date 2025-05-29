@@ -1,0 +1,260 @@
+/* frontend/src/pages/RecipesPage.css */
+
+.recipes-page-container {
+  /* This container already sits inside .app-container which provides max-width and padding */
+  margin: var(--spacing-lg) auto; /* Add margin to space it from Navbar/footer */
+  padding: 0 var(--spacing-lg); /* Match padding of app-container content */
+  font-family: "Nunito", sans-serif; /* Using direct font-family as var not defined in global.css */
+}
+
+.recipes-header {
+  font-family: "Playfair Display", serif; /* Using direct font-family as var not defined in global.css */
+  text-align: center;
+  color: var(--color-text-dark);
+  margin-bottom: var(--spacing-xl); /* More space below header */
+  font-size: 3.2em; /* Slightly larger, more impactful heading */
+  font-weight: 700;
+  letter-spacing: 0.02em; /* Subtle letter spacing for refined look */
+  padding-top: var(
+    --spacing-xl
+  ); /* Add top padding to detach from navbar shadow */
+}
+
+.no-recipes-message {
+  text-align: center;
+  font-size: 1.2em;
+  color: var(--color-text-medium);
+  padding: var(--spacing-xl);
+  background-color: var(--color-background-medium);
+  border-radius: var(--border-radius-md);
+  margin-top: var(--spacing-xl);
+}
+
+/* <--- NEW: Search and Filter Container Styles */
+.search-filter-container {
+  display: flex;
+  justify-content: center; /* Center the search bar */
+  align-items: center;
+  gap: var(--spacing-sm); /* Space between search input and clear button */
+  margin-bottom: var(--spacing-xl); /* Space below search bar */
+  padding: var(--spacing-md);
+  background-color: var(--color-background-medium);
+  border-radius: var(--border-radius-lg); /* Rounded container */
+  box-shadow: 0 2px 8px var(--color-shadow-light); /* Subtle shadow */
+  max-width: 600px; /* Limit width of search bar for aesthetics */
+  margin-left: auto; /* Center the container */
+  margin-right: auto;
+}
+
+.search-input {
+  flex-grow: 1; /* Allows input to take up available space */
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-sm);
+  font-size: 1em;
+  color: var(--color-text-dark);
+  background-color: var(--color-background-light);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(
+    --color-primary
+  ); /* Highlight with primary color on focus */
+  box-shadow: 0 0 0 3px rgba(128, 155, 82, 0.2); /* Soft glow */
+}
+
+.clear-search-button {
+  background-color: var(--color-accent-red);
+  color: var(--color-text-white);
+  border: none;
+  border-radius: 50%; /* Circular button */
+  width: 30px;
+  height: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0; /* Prevent shrinking on small screens */
+}
+
+.clear-search-button:hover {
+  background-color: #a04040; /* Darker red on hover */
+}
+
+.recipe-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--spacing-xl); /* Increased gap for more breathing room */
+  justify-content: center;
+  padding-bottom: var(--spacing-xl); /* Add bottom padding */
+}
+
+.recipe-card {
+  background-color: var(
+    --color-background-light
+  ); /* Use light background for card */
+  border: 1px solid var(--color-border-light);
+  border-radius: var(
+    --border-radius-lg
+  ); /* Larger radius for softer, more premium feel */
+  overflow: hidden;
+  box-shadow: 0 6px 15px var(--color-shadow-light); /* Softer, slightly larger shadow */
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  display: flex;
+  flex-direction: column;
+  text-decoration: none; /* Ensure link style is removed from card */
+  color: inherit; /* Inherit text color */
+}
+
+.recipe-card:hover {
+  transform: translateY(-8px); /* More pronounced lift effect on hover */
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.2); /* Deeper, more pronounced shadow on hover */
+}
+
+.recipe-image {
+  width: 100%;
+  height: 240px; /* Slightly taller images for better impact */
+  object-fit: cover;
+  border-bottom: 1px solid var(--color-border-light);
+  display: block;
+}
+
+.card-content {
+  padding: var(--spacing-lg); /* More internal padding for content */
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1; /* Allows content to push button to bottom */
+}
+
+.card-title {
+  font-family: "Playfair Display", serif;
+  font-size: 2em; /* More impactful title */
+  color: var(--color-text-dark);
+  margin-top: 0;
+  margin-bottom: var(--spacing-sm);
+  line-height: 1.2;
+}
+
+.card-author {
+  font-size: 0.95em;
+  color: var(--color-text-light);
+  margin-bottom: var(--spacing-md);
+}
+
+.card-description {
+  font-size: 1em; /* Slightly larger for readability */
+  color: var(--color-text-medium);
+  margin-bottom: var(--spacing-lg); /* More space before button */
+  flex-grow: 1;
+  overflow: hidden; /* Truncate description */
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* Limit description to 3 lines */
+  -webkit-box-orient: vertical;
+  line-height: 1.5;
+}
+
+.view-recipe-button {
+  display: inline-block; /* Use inline-block for subtle padding control */
+  width: auto; /* Auto width to not fill the card */
+  align-self: flex-start; /* Align to the start of the flex container */
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--color-primary);
+  color: var(--color-text-white);
+  text-align: center;
+  text-decoration: none;
+  border-radius: var(--border-radius-sm);
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.view-recipe-button:hover {
+  background-color: var(--color-button-hover);
+  transform: translateY(-2px); /* Subtle lift on hover */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .recipes-page-container {
+    padding: 0 var(--spacing-md); /* Adjust padding for smaller screens */
+  }
+
+  .recipes-header {
+    font-size: 2.5em; /* Smaller header on smaller screens */
+  }
+
+  .recipe-grid {
+    gap: var(--spacing-md); /* Reduce gap on smaller screens */
+    grid-template-columns: repeat(
+      auto-fill,
+      minmax(250px, 1fr)
+    ); /* Smaller minmax */
+  }
+
+  .recipe-image {
+    height: 180px; /* Adjust image height for smaller cards */
+  }
+
+  .card-title {
+    font-size: 1.5em; /* Adjust title size */
+  }
+
+  .card-content {
+    padding: var(--spacing-md);
+  }
+}
+
+@media (max-width: 480px) {
+  .recipe-grid {
+    grid-template-columns: 1fr; /* Single column on very small screens */
+  }
+}
+
+.loading-message,
+.error-message {
+  text-align: center;
+  font-size: 1.2em;
+  padding: var(--spacing-xl);
+  margin-top: var(--spacing-xl);
+  border-radius: var(--border-radius-md);
+  background-color: var(--color-background-medium);
+  color: var(--color-text-medium);
+}
+
+.error-message {
+  color: var(--color-accent-red);
+  background-color: #ffe0e0; /* Light red background for errors */
+  border: 1px solid var(--color-accent-red);
+}
+
+.subtle-loader {
+  text-align: center;
+  font-size: 0.9em;
+  color: var(--color-primary);
+  margin-top: var(--spacing-md);
+  /* You can make this a real CSS spinner animation if you prefer */
+}
+
+/* Example CSS for a simple rotating loader */
+.subtle-loader::after {
+  content: "";
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  border: 2px solid var(--color-primary);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-left: var(--spacing-sm);
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
