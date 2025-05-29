@@ -1,6 +1,8 @@
 // backend/controllers/userController.js
 const bcrypt = require("bcryptjs");
 const knex = require("knex")(require("../knexfile").development);
+const fs = require("fs").promises;
+const path = require("path");
 
 /**
  * @desc Get authenticated user's profile
@@ -71,19 +73,41 @@ exports.getUserProfile = async (req, res) => {
 exports.updateUserProfile = async (req, res) => {
   try {
     if (!req.user || !req.user.userId) {
+      // If a file was uploaded, clean it up if auth fails
+      if (req.file) {
+        await fs.unlink(req.file.path);
+      }
       return res.status(401).json({ message: "Not authorized." });
     }
 
     const userId = req.user.userId;
-    const {
-      username,
-      email,
-      first_name,
-      last_name,
-      bio,
-      profile_picture_url,
-      dietary_restrictions,
-    } = req.body;
+    const { username, email, first_name, last_name, bio } = req.body;
+    let profile_picture_url = req.body.profile_picture_url; // Existing URL or placeholder from form
+
+    let dietary_restrictions;
+    if (req.body.dietary_restrictions) {
+      try {
+        dietary_restrictions = JSON.parse(req.body.dietary_restrictions);
+        // Ensure it's an array after parsing, default to empty array if not
+        if (!Array.isArray(dietary_restrictions)) {
+          dietary_restrictions = [];
+        }
+      } catch (parseError) {
+        console.error("Error parsing dietary_restrictions:", parseError);
+        // If parsing fails, treat it as empty or invalid data
+        dietary_restrictions = [];
+      }
+    } else {
+      dietary_restrictions = []; // If the field wasn't sent at all
+    }
+
+    // If a new file was uploaded, use its path
+    if (req.file) {
+      profile_picture_url = `/uploads/profiles/${req.file.filename}`; // Path to serve from Express static
+    } else if (req.body.clear_profile_picture === "true") {
+      // Check if user wants to clear existing photo
+      profile_picture_url = null;
+    }
 
     // Basic validation
     if (!username || !email) {
@@ -109,6 +133,14 @@ exports.updateUserProfile = async (req, res) => {
     }
 
     await knex.transaction(async (trx) => {
+      const oldUserProfile = await trx("users")
+        .select("profile_picture_url")
+        .where({ id: userId })
+        .first();
+      const oldProfilePicturePath = oldUserProfile
+        ? oldUserProfile.profile_picture_url
+        : null;
+
       // Update basic user details
       const updatedRows = await trx("users")
         .where({ id: userId })
@@ -118,7 +150,7 @@ exports.updateUserProfile = async (req, res) => {
           first_name: first_name || null,
           last_name: last_name || null,
           bio: bio || null,
-          profile_picture_url: profile_picture_url || null,
+          profile_picture_url: profile_picture_url, // Use the determined URL/path
           updated_at: knex.fn.now(),
         });
 
@@ -128,24 +160,84 @@ exports.updateUserProfile = async (req, res) => {
           .json({ message: "User not found or no changes made." });
       }
 
-      // Handle dietary restrictions (clear existing and re-insert if provided)
-      if (dietary_restrictions !== undefined) {
-        // Check if the field was even sent
-        await trx("user_dietary_restrictions").where({ user_id: userId }).del(); // Clear existing
-        if (dietary_restrictions.length > 0) {
-          const entries = dietary_restrictions.map((drId) => ({
-            user_id: userId,
-            dietary_restriction_id: drId,
-          }));
-          await trx("user_dietary_restrictions").insert(entries);
+      if (
+        req.file &&
+        oldProfilePicturePath &&
+        oldProfilePicturePath.startsWith("/uploads/")
+      ) {
+        const fullOldPath = path.join(__dirname, "..", oldProfilePicturePath);
+        // Ensure we don't accidentally delete critical system files
+        if (
+          fullOldPath.startsWith(path.join(__dirname, "../uploads/profiles"))
+        ) {
+          try {
+            await fs.unlink(fullOldPath);
+            console.log(`Deleted old profile picture: ${fullOldPath}`);
+          } catch (deleteError) {
+            console.warn(
+              `Could not delete old profile picture ${fullOldPath}:`,
+              deleteError.message
+            );
+          }
+        }
+      } else if (
+        profile_picture_url === null &&
+        oldProfilePicturePath &&
+        oldProfilePicturePath.startsWith("/uploads/")
+      ) {
+        // User explicitly cleared photo
+        const fullOldPath = path.join(__dirname, "..", oldProfilePicturePath);
+        if (
+          fullOldPath.startsWith(path.join(__dirname, "../uploads/profiles"))
+        ) {
+          try {
+            await fs.unlink(fullOldPath);
+            console.log(
+              `Cleared and deleted old profile picture: ${fullOldPath}`
+            );
+          } catch (deleteError) {
+            console.warn(
+              `Could not delete old profile picture ${fullOldPath} after clear request:`,
+              deleteError.message
+            );
+          }
         }
       }
 
-      res.status(200).json({ message: "Profile updated successfully." });
+      // Handle dietary restrictions (clear existing and re-insert if provided)
+      await trx("user_dietary_restrictions").where({ user_id: userId }).del(); // Clear existing
+      if (dietary_restrictions.length > 0) {
+        const entries = dietary_restrictions.map((drId) => ({
+          user_id: userId,
+          dietary_restriction_id: drId,
+        }));
+        await trx("user_dietary_restrictions").insert(entries);
+      }
+
+      res.status(200).json({
+        message: "Profile updated successfully!",
+        profile_picture_url: profile_picture_url,
+      });
     });
   } catch (error) {
     console.error("Error updating user profile:", error);
-    res.status(500).json({ message: "Server error updating user profile." });
+    // If multer passes an error (e.g., file size limit exceeded)
+    if (error.code === "LIMIT_FILE_SIZE") {
+      res.status(400).json({ message: "File size too large. Max 5MB." });
+    } else if (error.message === "Only image files are allowed!") {
+      res
+        .status(400)
+        .json({ message: "Invalid file type. Only images are allowed." });
+    } else {
+      // If a file was uploaded, clean it up on any other error
+      if (req.file) {
+        await fs.unlink(req.file.path);
+      }
+      res.status(500).json({
+        message: "Server error updating user profile.",
+        error: error.message,
+      });
+    }
   }
 };
 

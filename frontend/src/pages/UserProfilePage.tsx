@@ -27,6 +27,17 @@ interface FilterOptionsResponse {
   // Add other filter types here if you want to display/edit them on the profile
 }
 
+const getFullImageUrl = (
+  relativePath: string | null | undefined
+): string | null => {
+  if (!relativePath) return null;
+  // Use import.meta.env for Vite environment variables
+  // Ensure VITE_BACKEND_URL is defined in your frontend/.env file
+  const backendBaseUrl =
+    import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
+  return `${backendBaseUrl}${relativePath}`;
+};
+
 const UserProfilePage: React.FC = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,6 +61,11 @@ const UserProfilePage: React.FC = () => {
   );
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showPasswordOverlay, setShowPasswordOverlay] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [profilePicturePreview, setProfilePicturePreview] = useState<
+    string | null
+  >(null);
+  const [clearProfilePicture, setClearProfilePicture] = useState(false); // New state to clear existing photo
 
   const navigate = useNavigate(); // Initialize useNavigate hook
 
@@ -64,6 +80,9 @@ const UserProfilePage: React.FC = () => {
         setFormData(response.data); // Initialize form data with fetched profile
         setSelectedDietaryRestrictionIds(
           response.data.dietary_restrictions.map((dr) => dr.id)
+        );
+        setProfilePicturePreview(
+          getFullImageUrl(response.data.profile_picture_url)
         );
       } catch (err: any) {
         console.error("Error fetching user profile:", err);
@@ -100,6 +119,27 @@ const UserProfilePage: React.FC = () => {
     setFormData({ ...formData, [name]: value });
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      setProfilePicturePreview(URL.createObjectURL(file)); // Create a local URL for preview
+      setClearProfilePicture(false);
+    } else {
+      setSelectedFile(null);
+      // --- CHANGE 2: Use getFullImageUrl when resetting preview to current ---
+      setProfilePicturePreview(
+        profile ? getFullImageUrl(profile.profile_picture_url) : null
+      );
+    }
+  };
+
+  const handleClearProfilePicture = () => {
+    setSelectedFile(null); // No new file selected
+    setProfilePicturePreview(null); // Clear preview
+    setClearProfilePicture(true); // Flag to tell backend to clear
+  };
+
   const handleDietaryRestrictionChange = (id: number, isChecked: boolean) => {
     setSelectedDietaryRestrictionIds((prev) =>
       isChecked ? [...prev, id] : prev.filter((item) => item !== id)
@@ -112,31 +152,73 @@ const UserProfilePage: React.FC = () => {
     setSaveMessage(null);
     setError(null);
 
-    try {
-      // Prepare data for backend: only send IDs for dietary restrictions
-      const dataToUpdate = {
-        ...formData,
-        dietary_restrictions: selectedDietaryRestrictionIds,
-      };
+    const formDataToSend = new FormData(); // Use FormData for file uploads
 
-      await api.put("/users/profile", dataToUpdate);
+    // Append text fields
+    formDataToSend.append("username", formData.username || "");
+    formDataToSend.append("email", formData.email || "");
+    formDataToSend.append("first_name", formData.first_name || "");
+    formDataToSend.append("last_name", formData.last_name || "");
+    formDataToSend.append("bio", formData.bio || "");
+
+    if (selectedFile) {
+      // If a new file is selected, append it
+      formDataToSend.append("profile_picture", selectedFile); // 'profile_picture' matches multer field name
+    }
+    if (clearProfilePicture) {
+      // If user explicitly chose to clear
+      formDataToSend.append("clear_profile_picture", "true");
+    }
+
+    // Append dietary restrictions (send as JSON string for array)
+    formDataToSend.append(
+      "dietary_restrictions",
+      JSON.stringify(selectedDietaryRestrictionIds)
+    );
+
+    try {
+      // Use api.put directly with FormData
+      const response = await api.put("/users/profile", formDataToSend, {
+        headers: {
+          "Content-Type": "multipart/form-data", // Crucial for file uploads
+        },
+      });
       setSaveMessage("Profile updated successfully!");
-      setIsEditing(false); // Exit editing mode on successful save
-      // Re-fetch profile to ensure UI is in sync (or manually update state)
-      // For simplicity, re-fetch for now:
-      const response = await api.get<UserProfile>("/users/profile");
-      setProfile(response.data);
-      setFormData(response.data);
-      setSelectedDietaryRestrictionIds(
-        response.data.dietary_restrictions.map((dr) => dr.id)
+      setIsEditing(false);
+
+      // Re-fetch profile to ensure UI is in sync
+      const updatedProfileResponse = await api.get<UserProfile>(
+        "/users/profile"
       );
+      setProfile(updatedProfileResponse.data);
+      setFormData(updatedProfileResponse.data);
+      setSelectedDietaryRestrictionIds(
+        updatedProfileResponse.data.dietary_restrictions.map((dr) => dr.id)
+      );
+      setProfilePicturePreview(
+        getFullImageUrl(updatedProfileResponse.data.profile_picture_url)
+      );
+      setSelectedFile(null);
+      setClearProfilePicture(false);
     } catch (err: any) {
       console.error("Error saving profile:", err);
-      setError(err.response?.data?.message || "Failed to save profile.");
+      // Check for specific multer errors from backend
+      if (err.response?.data?.message) {
+        if (err.response.data.message.includes("File size too large")) {
+          setError("File size too large. Max 5MB.");
+        } else if (err.response.data.message.includes("Invalid file type")) {
+          setError(
+            "Invalid file type. Only images (PNG, JPEG, GIF) are allowed."
+          );
+        } else {
+          setError(err.response.data.message || "Failed to save profile.");
+        }
+      } else {
+        setError("Failed to save profile. Please try again.");
+      }
       setSaveMessage(null);
     } finally {
       setIsSaving(false);
-      // Clear save message after a few seconds
       setTimeout(() => setSaveMessage(null), 5000);
     }
   };
@@ -211,6 +293,43 @@ const UserProfilePage: React.FC = () => {
       {/* Show error if saving fails */}
       {isEditing ? (
         <form onSubmit={handleSaveProfile} className="profile-form">
+          {/* Profile Picture Upload Field */}
+          <div className="form-group profile-picture-upload-group">
+            <h3>Profile Picture</h3>
+            <div className="profile-picture-preview-container">
+              {profilePicturePreview ? (
+                <img
+                  src={profilePicturePreview}
+                  alt="Profile Preview"
+                  className="profile-picture-preview"
+                />
+              ) : (
+                <div className="profile-picture-placeholder large-placeholder">
+                  No Image Selected
+                </div>
+              )}
+            </div>
+            <label className="form-label file-upload-label">
+              Upload New Picture:
+              <input
+                type="file"
+                name="profile_picture"
+                accept="image/*" // Accept any image type
+                onChange={handleFileChange}
+                className="form-input file-input"
+              />
+            </label>
+            {(profile?.profile_picture_url || selectedFile) && ( // Show clear button only if there's an image
+              <button
+                type="button"
+                onClick={handleClearProfilePicture}
+                className="clear-profile-picture-button"
+              >
+                Clear Current Picture
+              </button>
+            )}
+          </div>
+
           <label className="form-label">
             Username:
             <input
@@ -263,18 +382,6 @@ const UserProfilePage: React.FC = () => {
               className="form-textarea"
             />
           </label>
-          <label className="form-label">
-            Profile Picture URL:
-            <input
-              type="text"
-              name="profile_picture_url"
-              value={formData.profile_picture_url || ""}
-              onChange={handleInputChange}
-              className="form-input"
-            />
-          </label>
-
-          {/* Dietary Restrictions Selector */}
           <div className="form-group">
             <h3>Dietary Restrictions:</h3>
             <div className="dietary-restrictions-grid">
@@ -305,12 +412,15 @@ const UserProfilePage: React.FC = () => {
               type="button"
               onClick={() => {
                 setIsEditing(false);
-                setFormData(profile); // Reset form data if canceling
+                setFormData(profile);
                 setSelectedDietaryRestrictionIds(
                   profile.dietary_restrictions.map((dr) => dr.id)
-                ); // Reset selected D.R.
-                setSaveMessage(null); // Clear any messages
-                setError(null); // Clear any errors
+                );
+                setSaveMessage(null);
+                setError(null);
+                setSelectedFile(null); // Clear selected file on cancel
+                setProfilePicturePreview(profile?.profile_picture_url || null); // Reset preview
+                setClearProfilePicture(false); // Reset clear flag
               }}
               className="cancel-button"
             >
@@ -323,7 +433,7 @@ const UserProfilePage: React.FC = () => {
           <div className="profile-card">
             {profile.profile_picture_url ? (
               <img
-                src={profile.profile_picture_url}
+                src={getFullImageUrl(profile.profile_picture_url) || ""}
                 alt="Profile"
                 className="profile-picture"
               />
@@ -359,7 +469,7 @@ const UserProfilePage: React.FC = () => {
               Edit Profile
             </button>
 
-            {/* NEW: Button to open password change overlay */}
+            {/* Button to open password change overlay */}
             <button
               onClick={() => setShowPasswordOverlay(true)}
               className="update-password-button"
@@ -369,7 +479,7 @@ const UserProfilePage: React.FC = () => {
           </div>
         </div>
       )}
-      {/* NEW: Password Change Overlay */}
+      {/* Password Change Overlay (remains the same) */}
       {showPasswordOverlay && (
         <div className="password-overlay-backdrop">
           <div className="password-overlay-content">
@@ -379,8 +489,8 @@ const UserProfilePage: React.FC = () => {
                 className="close-password-overlay-button"
                 onClick={() => {
                   setShowPasswordOverlay(false);
-                  setPasswordChangeError(null); // Clear errors when closing
-                  setPasswordChangeMessage(null); // Clear messages when closing
+                  setPasswordChangeError(null);
+                  setPasswordChangeMessage(null);
                   setCurrentPassword("");
                   setNewPassword("");
                   setConfirmNewPassword("");
@@ -430,8 +540,6 @@ const UserProfilePage: React.FC = () => {
                 />
               </label>
               <div className="form-actions password-overlay-actions">
-                {" "}
-                {/* Use specific class for overlay buttons */}
                 <button
                   type="submit"
                   className="save-button"
@@ -443,8 +551,8 @@ const UserProfilePage: React.FC = () => {
                   type="button"
                   onClick={() => {
                     setShowPasswordOverlay(false);
-                    setPasswordChangeError(null); // Clear errors when closing
-                    setPasswordChangeMessage(null); // Clear messages when closing
+                    setPasswordChangeError(null);
+                    setPasswordChangeMessage(null);
                     setCurrentPassword("");
                     setNewPassword("");
                     setConfirmNewPassword("");

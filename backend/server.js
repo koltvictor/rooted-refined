@@ -3,6 +3,8 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
+const fs = require("fs");
 const pool = require("./db");
 const authRoutes = require("./routes/authRoutes");
 const recipeRoutes = require("./routes/recipeRoutes");
@@ -17,6 +19,21 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+const baseUploadsDir = path.join(__dirname, "uploads");
+const profileUploadsDir = path.join(baseUploadsDir, "profiles"); // Specific directory for profile pictures
+
+// Ensure both directories exist
+if (!fs.existsSync(baseUploadsDir)) {
+  fs.mkdirSync(baseUploadsDir, { recursive: true });
+  console.log(`Created directory: ${baseUploadsDir}`);
+}
+if (!fs.existsSync(profileUploadsDir)) {
+  fs.mkdirSync(profileUploadsDir, { recursive: true });
+  console.log(`Created directory: ${profileUploadsDir}`);
+}
+
+app.use("/uploads", express.static(baseUploadsDir)); // Serve files from the base 'uploads' directory
 
 // Basic API route
 app.get("/", (req, res) => {
@@ -46,7 +63,6 @@ app.use("/api/shopping-list", shoppingListRoutes);
 app.use("/api/data", dataRoutes);
 app.use("/api/users", userRoutes);
 
-// Start the server (ONLY ONE CALL)
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Access backend at: http://localhost:${PORT}`);
