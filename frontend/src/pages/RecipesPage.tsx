@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import api from "../api/api";
 import "./RecipesPage.css";
 import { useDebounce } from "../utils/hooks";
+import { useAuth } from "../context/AuthContext";
 
 // Define a type for a recipe (matching backend response)
 interface Recipe {
@@ -39,7 +40,6 @@ interface FilterOptionsResponse {
   occasions: FilterOption[];
 }
 
-// --- NEW: Add Interface for Paginated Recipe Response ---
 interface PaginatedRecipesResponse {
   recipes: Recipe[];
   currentPage: number;
@@ -48,10 +48,9 @@ interface PaginatedRecipesResponse {
   totalPages: number;
   hasMore: boolean;
 }
-// --- END NEW ---
 
 const RecipesPage: React.FC = () => {
-  console.log("RecipesPage component rendered");
+  const { user, isLoading: authLoading } = useAuth();
 
   const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,6 +104,15 @@ const RecipesPage: React.FC = () => {
   // Debounced search term for API call
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
+  useEffect(() => {
+    // Only set if authLoading is false and user data is available
+    if (!authLoading && user && user.dietary_restrictions) {
+      const profileDRIds = user.dietary_restrictions.map((dr) => dr.id);
+      setSelectedDietaryRestrictions(profileDRIds);
+      setStagedDietaryRestrictions(profileDRIds); // Also stage them for the overlay
+    }
+  }, [authLoading, user]); // Re-run if auth status or user data changes
+
   // Effect to load filter options on component mount
   useEffect(() => {
     console.log("useEffect: Fetching filter options (on mount)");
@@ -128,6 +136,12 @@ const RecipesPage: React.FC = () => {
 
   // Effect to fetch recipes based on search term and selected filters
   useEffect(() => {
+    // Do not fetch recipes until auth loading is complete
+    if (authLoading) {
+      setLoading(true); // Keep loading state true while auth is loading
+      return; // Prevent fetching before user data is ready
+    }
+
     const fetchRecipes = async () => {
       setLoading(true);
       setError(null);
@@ -145,7 +159,6 @@ const RecipesPage: React.FC = () => {
       });
 
       try {
-        // --- IMPORTANT CHANGE HERE: Specify response type and access .recipes array ---
         const response = await api.get<PaginatedRecipesResponse>("/recipes", {
           params: {
             search: debouncedSearchTerm,
@@ -159,11 +172,7 @@ const RecipesPage: React.FC = () => {
             occasions: selectedOccasions.join(","),
           },
         });
-        // Now, set allRecipes to response.data.recipes
         setAllRecipes(response.data.recipes);
-        // You might also want to store pagination info if you plan to use it:
-        // setPaginationInfo(response.data);
-        // --- END IMPORTANT CHANGE ---
       } catch (err: any) {
         console.error("Error fetching recipes:", err);
         setError("Failed to load recipes. Please try again later.");
@@ -177,11 +186,12 @@ const RecipesPage: React.FC = () => {
     selectedCategories,
     selectedCuisines,
     selectedSeasons,
-    selectedDietaryRestrictions,
+    selectedDietaryRestrictions, // IMPORTANT: Now this will trigger re-fetch when profile DRs are set
     selectedCookingMethods,
     selectedMainIngredients,
     selectedDifficultyLevels,
     selectedOccasions,
+    authLoading, // Add authLoading to dependencies to control initial fetch
   ]);
 
   // Memoized value for instant feedback on search
@@ -261,21 +271,27 @@ const RecipesPage: React.FC = () => {
     setStagedCategories([]);
     setStagedCuisines([]);
     setStagedSeasons([]);
-    setStagedDietaryRestrictions([]);
     setStagedCookingMethods([]);
     setStagedMainIngredients([]);
     setStagedDifficultyLevels([]);
     setStagedOccasions([]);
 
+    // Determine default dietary restrictions based on user's profile
+    const defaultDietaryRestrictions =
+      user && user.dietary_restrictions
+        ? user.dietary_restrictions.map((dr) => dr.id)
+        : [];
+    setStagedDietaryRestrictions(defaultDietaryRestrictions);
+
     if (applyImmediately) {
       setSelectedCategories([]);
       setSelectedCuisines([]);
       setSelectedSeasons([]);
-      setSelectedDietaryRestrictions([]);
       setSelectedCookingMethods([]);
       setSelectedMainIngredients([]);
       setSelectedDifficultyLevels([]);
       setSelectedOccasions([]);
+      setSelectedDietaryRestrictions(defaultDietaryRestrictions); // Apply to main selected filters
       setIsFilterOverlayOpen(false);
     }
   };

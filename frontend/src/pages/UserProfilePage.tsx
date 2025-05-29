@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, FormEvent } from "react";
 import api from "../api/api";
-import { Link, useNavigate } from "react-router-dom"; // Import useNavigate
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 import "./UserProfilePage.css"; // We will create this CSS file next
+import { useAuth } from "../context/AuthContext";
 
 // Define interfaces for data structures
 interface UserProfile {
@@ -39,6 +40,7 @@ const getFullImageUrl = (
 };
 
 const UserProfilePage: React.FC = () => {
+  const { user: authUser, login: authLogin, refreshUserProfile } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -110,7 +112,7 @@ const UserProfilePage: React.FC = () => {
 
     fetchUserProfile();
     fetchAvailableDietaryRestrictions();
-  }, [navigate]); // Add navigate to dependency array
+  }, [navigate, authUser]); // Add navigate to dependency array
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -177,30 +179,40 @@ const UserProfilePage: React.FC = () => {
     );
 
     try {
-      // Use api.put directly with FormData
-      const response = await api.put("/users/profile", formDataToSend, {
+      await api.put("/users/profile", formDataToSend, {
         headers: {
-          "Content-Type": "multipart/form-data", // Crucial for file uploads
+          "Content-Type": "multipart/form-data",
         },
       });
       setSaveMessage("Profile updated successfully!");
       setIsEditing(false);
 
-      // Re-fetch profile to ensure UI is in sync
-      const updatedProfileResponse = await api.get<UserProfile>(
-        "/users/profile"
-      );
-      setProfile(updatedProfileResponse.data);
-      setFormData(updatedProfileResponse.data);
-      setSelectedDietaryRestrictionIds(
-        updatedProfileResponse.data.dietary_restrictions.map((dr) => dr.id)
-      );
-      setProfilePicturePreview(
-        getFullImageUrl(updatedProfileResponse.data.profile_picture_url)
-      );
-      setSelectedFile(null);
-      setClearProfilePicture(false);
+      if (authUser) {
+        const updatedProfileResponse = await api.get<UserProfile>(
+          "/users/profile"
+        );
+
+        // Update local component state
+        setProfile(updatedProfileResponse.data);
+        setFormData(updatedProfileResponse.data);
+        setSelectedDietaryRestrictionIds(
+          updatedProfileResponse.data.dietary_restrictions.map((dr) => dr.id)
+        );
+        setProfilePicturePreview(
+          getFullImageUrl(updatedProfileResponse.data.profile_picture_url)
+        );
+        setSelectedFile(null);
+        setClearProfilePicture(false); // <--- Removed the extra semicolon here
+
+        if (refreshUserProfile) {
+          // Assuming `refreshUserProfile` is destructured from `useAuth`
+          await refreshUserProfile();
+        } else {
+          console.warn("refreshUserProfile is not available in AuthContext.");
+        }
+      } // Removed the incorrect `else` block or duplicate `try-catch` structure around this.
     } catch (err: any) {
+      // This `catch` belongs to the main `try` block of `handleSaveProfile`
       console.error("Error saving profile:", err);
       // Check for specific multer errors from backend
       if (err.response?.data?.message) {
