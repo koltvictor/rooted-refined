@@ -1,3 +1,5 @@
+// frontend/src/pages/SingleRecipePage.tsx
+
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import api from "../api/api";
@@ -27,12 +29,15 @@ interface SingleRecipe {
   updated_at: string;
   user_id?: number;
   username?: string;
-  ingredients: Ingredient[]; // Array of ingredients
+  ingredients: Ingredient[];
+  average_rating: number;
+  total_ratings: number;
+  current_user_rating: number;
 }
 
 const SingleRecipePage: React.FC = () => {
-  const { id } = useParams<{ id: string }>(); // Get recipe ID from URL params
-  const navigate = useNavigate(); // For redirecting to edit page
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [recipe, setRecipe] = useState<SingleRecipe | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,19 +58,15 @@ const SingleRecipePage: React.FC = () => {
       }
       try {
         const response = await api.get(`/recipes/${id}`);
-        const recipeData = response.data; // Store response.data in a variable for clarity
+        const recipeData = response.data;
 
         setRecipe(recipeData);
         setIsFavorited(
           location.state?.isFavorited || recipeData.isFavorited || false
         );
-
-        // <--- NEW: Extract rating data from recipeData and set state
-        setAvgRating(parseFloat(recipeData.average_rating || 0)); // Ensure it's a number
-        setNumRatings(parseInt(recipeData.total_ratings || 0)); // Ensure it's a number
-        setUserCurrentRating(parseFloat(recipeData.current_user_rating || 0)); // Ensure it's a number
-        // --- END NEW ---
-
+        setAvgRating(parseFloat(recipeData.average_rating || 0));
+        setNumRatings(parseInt(recipeData.total_ratings || 0));
+        setUserCurrentRating(parseFloat(recipeData.current_user_rating || 0));
         setLoading(false);
       } catch (err: any) {
         console.error("Error fetching recipe:", err);
@@ -79,12 +80,11 @@ const SingleRecipePage: React.FC = () => {
     };
 
     fetchRecipe();
-  }, [id, location.state?.isFavorited]); // Re-fetch if ID changes
+  }, [id, location.state?.isFavorited]);
 
   const canEditDelete =
     recipe && user && (user.id === recipe.user_id || user.is_admin);
 
-  // Function to get YouTube/Vimeo embed URL
   const getEmbedUrl = (url: string) => {
     if (url.includes("youtube.com/watch")) {
       const videoId = url.split("v=")[1]?.split("&")[0];
@@ -98,14 +98,13 @@ const SingleRecipePage: React.FC = () => {
       const videoId = url.split("/").pop();
       return videoId ? `https://player.vimeo.com/video/${videoId}` : null;
     }
-    return null; // Not a recognized video URL
+    return null;
   };
 
   const embedVideoSrc = recipe?.video_url
     ? getEmbedUrl(recipe.video_url)
-    : null; // <--- NEW
+    : null;
 
-  // Helper function to format time (e.g., 90 minutes -> 1 hr 30 mins)
   const formatTime = (minutes: number | undefined) => {
     if (minutes === undefined || minutes === null) return "N/A";
     const hours = Math.floor(minutes / 60);
@@ -126,18 +125,14 @@ const SingleRecipePage: React.FC = () => {
 
   const handleToggleFavorite = async () => {
     if (!user) {
-      // Optionally, redirect to login or show a message
       alert("Please log in to favorite recipes!");
       return;
     }
-    if (!recipe) return; // Should not happen if button is shown
+    if (!recipe) return;
 
     try {
-      // The backend returns { favorited: true/false }
       const response = await api.post(`/recipes/${recipe.id}/favorite`);
-      setIsFavorited(response.data.favorited); // Update local state based on backend response
-      // Optionally, show a brief success message
-      // setMessage(response.data.message); // If you have a message state
+      setIsFavorited(response.data.favorited);
     } catch (error: any) {
       console.error(
         "Error toggling favorite:",
@@ -147,6 +142,97 @@ const SingleRecipePage: React.FC = () => {
         error.response?.data?.message || "Failed to toggle favorite status."
       );
     }
+  };
+
+  const handleRateRecipe = async (rating: number) => {
+    if (!user) {
+      alert("Please log in to rate recipes!");
+      navigate("/login");
+      return;
+    }
+    if (!recipe) return;
+
+    try {
+      const response = await api.post(`/recipes/${recipe.id}/rate`, { rating });
+      setUserCurrentRating(rating);
+      const updatedRecipeResponse = await api.get(`/recipes/${recipe.id}`);
+
+      if (updatedRecipeResponse.data) {
+        setAvgRating(
+          parseFloat(updatedRecipeResponse.data.average_rating || 0)
+        );
+        setNumRatings(parseInt(updatedRecipeResponse.data.total_ratings || 0));
+      }
+
+      alert(response.data.message);
+    } catch (error: any) {
+      console.error(
+        "Error submitting rating:",
+        error.response?.data || error.message
+      );
+      alert(
+        error.response?.data?.message ||
+          "Failed to submit rating. Please try again."
+      );
+    }
+  };
+
+  // Function to parse instructions and apply bold styling
+  const parseInstructions = (instructionsText: string) => {
+    // Split the entire instructions string by double newlines first,
+    // as that's your general step delimiter.
+    // However, for section titles, we'll split by single newlines.
+    const lines = instructionsText.split("\n"); // Split by single newlines for initial parsing
+
+    const sections: { title?: string; steps: string[] }[] = [];
+    let currentSection: { title?: string; steps: string[] } = { steps: [] }; // Initialize with an empty section
+
+    lines.forEach((line) => {
+      const trimmedLine = line.trim();
+
+      if (trimmedLine.startsWith("*")) {
+        // This is a new section title
+        // If the currentSection has content, push it to sections array before starting a new one
+        if (currentSection.steps.length > 0 || currentSection.title) {
+          sections.push(currentSection);
+        }
+        // Extract title, removing leading and trailing asterisks
+        let title = trimmedLine.substring(1); // Remove leading asterisk
+        if (title.endsWith("*")) {
+          title = title.substring(0, title.length - 1); // Remove trailing asterisk
+        }
+        currentSection = { title: title.trim(), steps: [] }; // Start a new section
+      } else if (trimmedLine.length > 0) {
+        // This is a step, add it to the current section
+        currentSection.steps.push(trimmedLine);
+      }
+      // Ignore empty lines that are not part of a double newline step
+    });
+
+    // Push the last collected section if it has content
+    if (currentSection.steps.length > 0 || currentSection.title) {
+      sections.push(currentSection);
+    }
+
+    return sections.map((section, sectionIndex) => (
+      <React.Fragment key={`section-${sectionIndex}`}>
+        {section.title && (
+          <h3 className="instruction-section-title">{section.title}</h3>
+        )}
+        {section.steps.length > 0 && (
+          <ol className="single-recipe-instructions-list">
+            {section.steps.map((step, stepIndex) => (
+              <li
+                key={`step-${sectionIndex}-${stepIndex}`}
+                className="single-recipe-instruction-step"
+              >
+                {step}
+              </li>
+            ))}
+          </ol>
+        )}
+      </React.Fragment>
+    ));
   };
 
   if (loading) {
@@ -160,48 +246,11 @@ const SingleRecipePage: React.FC = () => {
   if (!recipe) {
     return (
       <div className="single-recipe-container">No recipe data available.</div>
-    ); // Should not happen with error handling
+    );
   }
-
-  const handleRateRecipe = async (rating: number) => {
-    if (!user) {
-      alert("Please log in to rate recipes!");
-      navigate("/login"); // Redirect to login
-      return;
-    }
-    if (!recipe) return;
-
-    try {
-      const response = await api.post(`/recipes/${recipe.id}/rate`, { rating });
-      // Update local state optimisticially or refetch if necessary
-      setUserCurrentRating(rating); // Update user's own rating
-      // To get the new average, it's safer to re-fetch the recipe or calculate
-      // For simplicity, let's assume backend sends back updated average.
-      // If not, you'd need a separate endpoint for average or re-fetch whole recipe.
-      // For now, let's re-fetch the recipe to get the latest average and total
-      // This is less performant but ensures data consistency.
-      const updatedRecipeResponse = await api.get(`/recipes/${recipe.id}`);
-      setAvgRating(updatedRecipeResponse.data.average_rating);
-      setNumRatings(updatedRecipeResponse.data.total_ratings);
-      alert(response.data.message); // Show success message
-    } catch (error: any) {
-      console.error(
-        "Error submitting rating:",
-        error.response?.data || error.message
-      );
-      alert(
-        error.response?.data?.message ||
-          "Failed to submit rating. Please try again."
-      );
-      // Revert UI if API call failed
-      // setUserCurrentRating(userCurrentRating); // Or original rating if stored
-    }
-  };
 
   return (
     <div className="single-recipe-container">
-      {" "}
-      {/* Assuming you've moved styles to SingleRecipePage.css */}
       {recipe.image_url && (
         <img
           src={recipe.image_url}
@@ -209,7 +258,7 @@ const SingleRecipePage: React.FC = () => {
           className="single-recipe-image"
         />
       )}
-      {embedVideoSrc && ( // <--- NEW: Display video if URL exists
+      {embedVideoSrc && (
         <div className="single-recipe-video-container">
           <iframe
             className="single-recipe-video"
@@ -230,7 +279,7 @@ const SingleRecipePage: React.FC = () => {
           averageRating={avgRating}
           totalRatings={numRatings}
           currentUserRating={userCurrentRating}
-          isClickable={!!user} // Only clickable if user is logged in
+          isClickable={!!user}
           onRate={handleRateRecipe}
         />
       </div>
@@ -261,18 +310,11 @@ const SingleRecipePage: React.FC = () => {
       </div>
       <div className="single-recipe-section">
         <h2 className="single-recipe-section-header">Instructions</h2>
-        {/* <--- NEW: Split instructions by double newline and render as numbered list */}
-        <ol className="single-recipe-instructions-list">
-          {recipe.instructions.split("\n\n").map((step, index) => (
-            <li key={index} className="single-recipe-instruction-step">
-              {step.trim()}
-            </li>
-          ))}
-        </ol>
+        {parseInstructions(recipe.instructions)}
       </div>
       {/* Action Buttons */}
       <div className="single-recipe-action-buttons">
-        {canEditDelete && ( // <--- NEW: Conditional Edit button
+        {canEditDelete && (
           <button
             onClick={() => navigate(`/edit-recipe/${recipe.id}`)}
             className="single-recipe-action-button single-recipe-edit-button"
@@ -282,15 +324,12 @@ const SingleRecipePage: React.FC = () => {
         )}
         <button
           onClick={handleToggleFavorite}
-          // Only allow logged-in users to click
           disabled={!user}
-          // Apply a class based on isFavorited state for styling
           className={`single-recipe-action-button single-recipe-like-button ${
             isFavorited ? "is-favorited" : ""
           }`}
         >
-          {isFavorited ? "❤️ Favorited!" : "🤍 Like"}{" "}
-          {/* Change text based on status */}
+          {isFavorited ? "❤️ Favorited!" : "🤍 Like"}
         </button>
         <button className="single-recipe-action-button single-recipe-print-button">
           🖨️ Print

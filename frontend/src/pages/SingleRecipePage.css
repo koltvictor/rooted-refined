@@ -351,3 +351,31 @@
   text-align: center; /* Center the star rating component */
   margin: var(--spacing-md) auto var(--spacing-xl); /* Add margin below it */
 }
+
+.instruction-section-title {
+  font-family: "Playfair Display", serif; /* Consistent heading font */
+  font-size: 1em; /* Prominent but not too large */
+  font-weight: 700; /* Bold */
+  color: var(--color-text-dark); /* Dark text color */
+  margin-top: var(--spacing-xl); /* Space above new section title */
+  margin-bottom: var(--spacing-md); /* Space below title before steps start */
+  text-align: left; /* Align left with the numbered steps */
+  border-bottom: 1px solid var(--color-border-light); /* Subtle separator line */
+  padding-bottom: var(--spacing-sm); /* Padding below the line */
+}
+
+/* Ensure numbered steps are displayed correctly */
+.single-recipe-instructions-list {
+  list-style-type: decimal; /* Use numbers for the list (1., 2., etc.) */
+  padding-left: var(--spacing-lg); /* Indent the list for readability */
+  margin-bottom: var(
+    --spacing-xl
+  ); /* Space after each complete numbered list section */
+  font-size: 1.1em; /* Comfortable reading size for steps */
+  color: var(--color-text-medium); /* Medium grey for readability */
+}
+
+.single-recipe-instruction-step {
+  margin-bottom: var(--spacing-sm); /* Space between individual steps */
+  line-height: 1.5; /* Good line height for readability */
+}
