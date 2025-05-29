@@ -5,6 +5,7 @@
   margin: var(--spacing-lg) auto; /* Add margin to space it from Navbar/footer */
   padding: 0 var(--spacing-lg); /* Match padding of app-container content */
   font-family: "Nunito", sans-serif; /* Using direct font-family as var not defined in global.css */
+  position: relative; /* Needed for overlay positioning */
 }
 
 .recipes-header {
@@ -30,24 +31,31 @@
   margin-top: var(--spacing-xl);
 }
 
-/* <--- NEW: Search and Filter Container Styles */
-.search-filter-container {
+/* --- NEW: Search and Filter Controls Layout --- */
+.search-filter-controls {
   display: flex;
-  justify-content: center; /* Center the search bar */
-  align-items: center;
-  gap: var(--spacing-sm); /* Space between search input and clear button */
-  margin-bottom: var(--spacing-xl); /* Space below search bar */
+  flex-direction: column; /* Stack search and filter button initially */
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
   padding: var(--spacing-md);
   background-color: var(--color-background-medium);
-  border-radius: var(--border-radius-lg); /* Rounded container */
-  box-shadow: 0 2px 8px var(--color-shadow-light); /* Subtle shadow */
-  max-width: 600px; /* Limit width of search bar for aesthetics */
-  margin-left: auto; /* Center the container */
+  border-radius: var(--border-radius-lg);
+  box-shadow: 0 2px 8px var(--color-shadow-light);
+  max-width: 600px;
+  margin-left: auto;
   margin-right: auto;
+  align-items: center; /* Center items horizontally in column layout */
+}
+
+.search-input-wrapper {
+  display: flex;
+  width: 100%; /* Take full width of parent */
+  gap: var(--spacing-sm);
+  align-items: center;
 }
 
 .search-input {
-  flex-grow: 1; /* Allows input to take up available space */
+  flex-grow: 1;
   padding: var(--spacing-sm) var(--spacing-md);
   border: 1px solid var(--color-border-light);
   border-radius: var(--border-radius-sm);
@@ -59,17 +67,15 @@
 
 .search-input:focus {
   outline: none;
-  border-color: var(
-    --color-primary
-  ); /* Highlight with primary color on focus */
-  box-shadow: 0 0 0 3px rgba(128, 155, 82, 0.2); /* Soft glow */
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(128, 155, 82, 0.2);
 }
 
 .clear-search-button {
   background-color: var(--color-accent-red);
   color: var(--color-text-white);
   border: none;
-  border-radius: 50%; /* Circular button */
+  border-radius: 50%;
   width: 30px;
   height: 30px;
   display: flex;
@@ -78,61 +84,244 @@
   font-size: 0.9em;
   cursor: pointer;
   transition: background-color 0.2s ease;
-  flex-shrink: 0; /* Prevent shrinking on small screens */
+  flex-shrink: 0;
 }
 
 .clear-search-button:hover {
-  background-color: #a04040; /* Darker red on hover */
+  background-color: #a04040;
 }
 
+.filter-toggle-button {
+  background-color: var(--color-secondary); /* A clear filter button color */
+  color: var(--color-text-white);
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--border-radius-sm);
+  font-size: 1em;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  min-width: 120px; /* Give it a consistent width */
+  text-align: center;
+}
+
+.filter-toggle-button:hover {
+  background-color: var(--color-accent-blue); /* A nice hover effect */
+  transform: translateY(-2px);
+}
+
+@media (min-width: 768px) {
+  .search-filter-controls {
+    flex-direction: row; /* Row layout on larger screens */
+    justify-content: space-between; /* Space out items */
+  }
+
+  .search-input-wrapper {
+    flex-grow: 1;
+    max-width: 400px; /* Limit search input width even in row layout */
+  }
+
+  .filter-toggle-button {
+    margin-left: var(--spacing-md); /* Space from search input */
+  }
+}
+
+/* --- NEW: Filter Overlay Styles --- */
+.filter-overlay {
+  position: fixed; /* Fixed position relative to viewport */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6); /* Dark semi-transparent overlay */
+  z-index: 1000; /* Ensure it's above other content */
+  display: flex;
+  justify-content: flex-start; /* Align content to the left */
+  visibility: hidden; /* Hidden by default */
+  opacity: 0; /* Fade out effect for overlay background */
+  transition: visibility 0.3s ease-in-out, opacity 0.3s ease-in-out;
+}
+
+.filter-overlay.open {
+  visibility: visible;
+  opacity: 1;
+}
+
+.filter-overlay-content-wrapper {
+  background-color: var(--color-background-light);
+  width: 300px; /* Width of the sliding sidebar */
+  max-width: 80%; /* Max width for smaller screens */
+  height: 100%;
+  transform: translateX(-100%); /* Start off-screen to the left */
+  transition: transform 0.3s ease-in-out;
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-overlay.open .filter-overlay-content-wrapper {
+  transform: translateX(0); /* Slide in */
+}
+
+.filter-overlay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-lg);
+  background-color: var(--color-primary);
+  color: var(--color-text-white);
+  border-bottom: 1px solid var(--color-primary-dark);
+}
+
+.filter-overlay-header h2 {
+  margin: 0;
+  font-size: 1.8em;
+  font-family: "Playfair Display", serif;
+}
+
+.close-filter-button {
+  background: none;
+  border: none;
+  color: var(--color-text-white);
+  font-size: 2em;
+  cursor: pointer;
+  padding: 0 var(--spacing-sm);
+}
+
+.close-filter-button:hover {
+  opacity: 0.8;
+}
+
+.filter-overlay-content {
+  flex-grow: 1; /* Allows content to take up remaining space */
+  padding: var(--spacing-lg);
+  overflow-y: auto; /* Enable scrolling for filter options */
+}
+
+.filter-options-grid {
+  display: grid;
+  grid-template-columns: 1fr; /* Stack filter groups */
+  gap: var(--spacing-xl); /* Space between filter groups */
+}
+
+.filter-group {
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-md);
+  background-color: var(--color-background-medium);
+}
+
+.filter-group h3 {
+  font-family: "Playfair Display", serif;
+  font-size: 1.3em;
+  color: var(--color-text-dark);
+  margin-top: 0;
+  margin-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border-light);
+  padding-bottom: var(--spacing-sm);
+}
+
+.filter-checkbox-label {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--spacing-xs);
+  cursor: pointer;
+  font-size: 1em;
+  color: var(--color-text-medium);
+}
+
+.filter-checkbox-label input[type="checkbox"] {
+  margin-right: var(--spacing-sm);
+  width: 1.2em;
+  height: 1.2em;
+  accent-color: var(--color-primary); /* Style checkbox with primary color */
+  cursor: pointer;
+}
+
+.filter-overlay-footer {
+  padding: var(--spacing-lg);
+  border-top: 1px solid var(--color-border-light);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  background-color: var(--color-background-medium);
+}
+
+.apply-filters-button,
+.clear-all-filters-button {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: var(--border-radius-sm);
+  font-size: 1em;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  flex-grow: 1;
+}
+
+.apply-filters-button {
+  background-color: var(--color-primary);
+  color: var(--color-text-white);
+}
+
+.apply-filters-button:hover {
+  background-color: var(--color-button-hover);
+  transform: translateY(-2px);
+}
+
+.clear-all-filters-button {
+  background-color: var(--color-accent-red);
+  color: var(--color-text-white);
+}
+
+.clear-all-filters-button:hover {
+  background-color: #a04040;
+  transform: translateY(-2px);
+}
+
+/* Original recipe grid and card styles (kept for context) */
 .recipe-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: var(--spacing-xl); /* Increased gap for more breathing room */
+  gap: var(--spacing-xl);
   justify-content: center;
-  padding-bottom: var(--spacing-xl); /* Add bottom padding */
+  padding-bottom: var(--spacing-xl);
 }
 
 .recipe-card {
-  background-color: var(
-    --color-background-light
-  ); /* Use light background for card */
+  background-color: var(--color-background-light);
   border: 1px solid var(--color-border-light);
-  border-radius: var(
-    --border-radius-lg
-  ); /* Larger radius for softer, more premium feel */
+  border-radius: var(--border-radius-lg);
   overflow: hidden;
-  box-shadow: 0 6px 15px var(--color-shadow-light); /* Softer, slightly larger shadow */
+  box-shadow: 0 6px 15px var(--color-shadow-light);
   transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
   display: flex;
   flex-direction: column;
-  text-decoration: none; /* Ensure link style is removed from card */
-  color: inherit; /* Inherit text color */
+  text-decoration: none;
+  color: inherit;
 }
 
 .recipe-card:hover {
-  transform: translateY(-8px); /* More pronounced lift effect on hover */
-  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.2); /* Deeper, more pronounced shadow on hover */
+  transform: translateY(-8px);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.2);
 }
 
 .recipe-image {
   width: 100%;
-  height: 240px; /* Slightly taller images for better impact */
+  height: 240px;
   object-fit: cover;
   border-bottom: 1px solid var(--color-border-light);
   display: block;
 }
 
 .card-content {
-  padding: var(--spacing-lg); /* More internal padding for content */
+  padding: var(--spacing-lg);
   display: flex;
   flex-direction: column;
-  flex-grow: 1; /* Allows content to push button to bottom */
+  flex-grow: 1;
 }
 
 .card-title {
   font-family: "Playfair Display", serif;
-  font-size: 2em; /* More impactful title */
+  font-size: 2em;
   color: var(--color-text-dark);
   margin-top: 0;
   margin-bottom: var(--spacing-sm);
@@ -146,21 +335,21 @@
 }
 
 .card-description {
-  font-size: 1em; /* Slightly larger for readability */
+  font-size: 1em;
   color: var(--color-text-medium);
-  margin-bottom: var(--spacing-lg); /* More space before button */
+  margin-bottom: var(--spacing-lg);
   flex-grow: 1;
-  overflow: hidden; /* Truncate description */
+  overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 3; /* Limit description to 3 lines */
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   line-height: 1.5;
 }
 
 .view-recipe-button {
-  display: inline-block; /* Use inline-block for subtle padding control */
-  width: auto; /* Auto width to not fill the card */
-  align-self: flex-start; /* Align to the start of the flex container */
+  display: inline-block;
+  width: auto;
+  align-self: flex-start;
   padding: var(--spacing-sm) var(--spacing-md);
   background-color: var(--color-primary);
   color: var(--color-text-white);
@@ -174,43 +363,50 @@
 
 .view-recipe-button:hover {
   background-color: var(--color-button-hover);
-  transform: translateY(-2px); /* Subtle lift on hover */
+  transform: translateY(-2px);
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .recipes-page-container {
-    padding: 0 var(--spacing-md); /* Adjust padding for smaller screens */
+    padding: 0 var(--spacing-md);
   }
 
   .recipes-header {
-    font-size: 2.5em; /* Smaller header on smaller screens */
+    font-size: 2.5em;
   }
 
   .recipe-grid {
-    gap: var(--spacing-md); /* Reduce gap on smaller screens */
-    grid-template-columns: repeat(
-      auto-fill,
-      minmax(250px, 1fr)
-    ); /* Smaller minmax */
+    gap: var(--spacing-md);
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   }
 
   .recipe-image {
-    height: 180px; /* Adjust image height for smaller cards */
+    height: 180px;
   }
 
   .card-title {
-    font-size: 1.5em; /* Adjust title size */
+    font-size: 1.5em;
   }
 
   .card-content {
     padding: var(--spacing-md);
   }
+
+  /* Adjust filter overlay on smaller screens */
+  .filter-overlay-content-wrapper {
+    width: 250px; /* Slightly narrower on small screens */
+  }
 }
 
 @media (max-width: 480px) {
   .recipe-grid {
-    grid-template-columns: 1fr; /* Single column on very small screens */
+    grid-template-columns: 1fr;
+  }
+
+  /* Ensure filter overlay remains functional */
+  .filter-overlay-content-wrapper {
+    max-width: 90%; /* Allow it to take more width on very small screens */
   }
 }
 
@@ -227,7 +423,7 @@
 
 .error-message {
   color: var(--color-accent-red);
-  background-color: #ffe0e0; /* Light red background for errors */
+  background-color: #ffe0e0;
   border: 1px solid var(--color-accent-red);
 }
 
@@ -236,10 +432,8 @@
   font-size: 0.9em;
   color: var(--color-primary);
   margin-top: var(--spacing-md);
-  /* You can make this a real CSS spinner animation if you prefer */
 }
 
-/* Example CSS for a simple rotating loader */
 .subtle-loader::after {
   content: "";
   display: inline-block;
@@ -257,4 +451,24 @@
   to {
     transform: rotate(360deg);
   }
+}
+.filter-overlay-footer {
+  padding: var(--spacing-lg);
+  border-top: 1px solid var(--color-border-light);
+  display: flex;
+  flex-direction: column; /* Changed from row to column */
+  gap: var(--spacing-md); /* Space between stacked buttons */
+  background-color: var(--color-background-medium);
+}
+
+.apply-filters-button,
+.clear-all-filters-button {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: var(--border-radius-sm);
+  font-size: 1em;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  width: 100%; /* Make buttons take full width when stacked */
+  /* flex-grow: 1;  Remove this as width: 100% is better for stacked */
 }
