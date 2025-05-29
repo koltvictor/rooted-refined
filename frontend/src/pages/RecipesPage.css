@@ -127,17 +127,17 @@
 
 /* --- NEW: Filter Overlay Styles --- */
 .filter-overlay {
-  position: fixed; /* Fixed position relative to viewport */
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.6); /* Dark semi-transparent overlay */
-  z-index: 1000; /* Ensure it's above other content */
+  z-index: 1000;
   display: flex;
-  justify-content: flex-start; /* Align content to the left */
-  visibility: hidden; /* Hidden by default */
-  opacity: 0; /* Fade out effect for overlay background */
+  justify-content: flex-start; /* Aligns the sidebar content to the left */
+  visibility: hidden;
+  opacity: 0;
   transition: visibility 0.3s ease-in-out, opacity 0.3s ease-in-out;
 }
 
@@ -148,13 +148,44 @@
 
 .filter-overlay-content-wrapper {
   background-color: var(--color-background-light);
-  width: 300px; /* Width of the sliding sidebar */
-  max-width: 80%; /* Max width for smaller screens */
+  /* Make it 1/3 of the screen width */
+  width: 33.33vw; /* Use viewport width (vw) for accurate 1/3 of screen */
+  max-width: 450px; /* Sensible max width for larger screens */
+  min-width: 300px; /* Ensure it's not too small on desktop */
   height: 100%;
-  transform: translateX(-100%); /* Start off-screen to the left */
+  transform: translateX(-100%); /* Starts off-screen to the left */
   transition: transform 0.3s ease-in-out;
   display: flex;
   flex-direction: column;
+}
+
+@media (max-width: 1200px) {
+  /* Adjust for slightly smaller screens if 33.33vw is too narrow */
+  .filter-overlay-content-wrapper {
+    width: 38vw; /* Slightly wider */
+  }
+}
+
+@media (max-width: 992px) {
+  /* Further adjust for medium screens */
+  .filter-overlay-content-wrapper {
+    width: 45vw; /* Even wider */
+  }
+}
+
+@media (max-width: 768px) {
+  /* Mobile and tablet: make it take up more space */
+  .filter-overlay-content-wrapper {
+    width: 75vw; /* Take up 75% on smaller screens */
+    max-width: none; /* Remove max-width constraint for small screens */
+  }
+}
+
+@media (max-width: 480px) {
+  /* Very small screens */
+  .filter-overlay-content-wrapper {
+    width: 90vw; /* Take up 90% on very small screens */
+  }
 }
 
 .filter-overlay.open .filter-overlay-content-wrapper {
@@ -163,7 +194,8 @@
 
 .filter-overlay-header {
   display: flex;
-  justify-content: space-between;
+  /* Now it just contains the title, so align to the start */
+  justify-content: flex-start;
   align-items: center;
   padding: var(--spacing-lg);
   background-color: var(--color-primary);
@@ -175,31 +207,32 @@
   margin: 0;
   font-size: 1.8em;
   font-family: "Playfair Display", serif;
+  text-align: left;
+  flex-grow: 1;
 }
 
-.close-filter-button {
+/* The close-filter-button is now in the footer, so these styles will change */
+/* REMOVE old .close-filter-button styles if they exist here */
+/* .close-filter-button {
   background: none;
   border: none;
   color: var(--color-text-white);
   font-size: 2em;
   cursor: pointer;
   padding: 0 var(--spacing-sm);
-}
-
-.close-filter-button:hover {
-  opacity: 0.8;
-}
+} */
 
 .filter-overlay-content {
-  flex-grow: 1; /* Allows content to take up remaining space */
+  flex-grow: 1;
   padding: var(--spacing-lg);
-  overflow-y: auto; /* Enable scrolling for filter options */
+  overflow-y: auto;
+  text-align: left;
 }
 
 .filter-options-grid {
   display: grid;
-  grid-template-columns: 1fr; /* Stack filter groups */
-  gap: var(--spacing-xl); /* Space between filter groups */
+  grid-template-columns: 1fr;
+  gap: var(--spacing-xl);
 }
 
 .filter-group {
@@ -208,6 +241,7 @@
   border: 1px solid var(--color-border-light);
   border-radius: var(--border-radius-md);
   background-color: var(--color-background-medium);
+  text-align: left;
 }
 
 .filter-group h3 {
@@ -218,6 +252,7 @@
   margin-bottom: var(--spacing-md);
   border-bottom: 1px solid var(--color-border-light);
   padding-bottom: var(--spacing-sm);
+  text-align: left;
 }
 
 .filter-checkbox-label {
@@ -227,13 +262,14 @@
   cursor: pointer;
   font-size: 1em;
   color: var(--color-text-medium);
+  justify-content: flex-start;
 }
 
 .filter-checkbox-label input[type="checkbox"] {
   margin-right: var(--spacing-sm);
   width: 1.2em;
   height: 1.2em;
-  accent-color: var(--color-primary); /* Style checkbox with primary color */
+  accent-color: var(--color-primary);
   cursor: pointer;
 }
 
@@ -241,20 +277,27 @@
   padding: var(--spacing-lg);
   border-top: 1px solid var(--color-border-light);
   display: flex;
-  justify-content: space-between;
-  gap: var(--spacing-md);
+  flex-direction: column; /* Stack buttons */
+  gap: var(--spacing-md); /* Space between stacked buttons */
   background-color: var(--color-background-medium);
+  /* Align buttons to the center of the footer */
+  align-items: center;
+  /* Add padding-bottom to separate buttons from bottom edge of overlay */
+  padding-bottom: var(--spacing-lg);
 }
 
+/* Apply new consistent styles for all footer buttons */
 .apply-filters-button,
-.clear-all-filters-button {
+.clear-all-filters-button,
+.close-filter-button {
   padding: var(--spacing-sm) var(--spacing-md);
   border: none;
   border-radius: var(--border-radius-sm);
   font-size: 1em;
   cursor: pointer;
   transition: background-color 0.2s ease, transform 0.1s ease;
-  flex-grow: 1;
+  width: 100%; /* Make buttons take full width when stacked */
+  text-align: center; /* Center text within the button */
 }
 
 .apply-filters-button {
@@ -274,6 +317,18 @@
 
 .clear-all-filters-button:hover {
   background-color: #a04040;
+  transform: translateY(-2px);
+}
+
+/* Style for the new position of the close button */
+.close-filter-button {
+  background-color: var(--color-text-medium); /* A neutral color for close */
+  color: var(--color-text-white);
+  /* Specific override if needed, but the shared styles above should handle most */
+}
+
+.close-filter-button:hover {
+  background-color: var(--color-text-dark); /* Darker on hover */
   transform: translateY(-2px);
 }
 
@@ -395,7 +450,8 @@
 
   /* Adjust filter overlay on smaller screens */
   .filter-overlay-content-wrapper {
-    width: 250px; /* Slightly narrower on small screens */
+    width: 80%; /* Take up more space on smaller screens to be usable */
+    max-width: none; /* Remove max-width constraint for small screens */
   }
 }
 
@@ -406,7 +462,7 @@
 
   /* Ensure filter overlay remains functional */
   .filter-overlay-content-wrapper {
-    max-width: 90%; /* Allow it to take more width on very small screens */
+    width: 90%; /* Allow it to take more width on very small screens */
   }
 }
 
@@ -451,24 +507,4 @@
   to {
     transform: rotate(360deg);
   }
-}
-.filter-overlay-footer {
-  padding: var(--spacing-lg);
-  border-top: 1px solid var(--color-border-light);
-  display: flex;
-  flex-direction: column; /* Changed from row to column */
-  gap: var(--spacing-md); /* Space between stacked buttons */
-  background-color: var(--color-background-medium);
-}
-
-.apply-filters-button,
-.clear-all-filters-button {
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: none;
-  border-radius: var(--border-radius-sm);
-  font-size: 1em;
-  cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.1s ease;
-  width: 100%; /* Make buttons take full width when stacked */
-  /* flex-grow: 1;  Remove this as width: 100% is better for stacked */
 }

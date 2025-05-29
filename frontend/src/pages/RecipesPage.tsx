@@ -217,6 +217,17 @@ const RecipesPage: React.FC = () => {
 
   // Applies the staged filters to the main selected filters and closes overlay
   const applyFilters = () => {
+    console.log("applyFilters: Staged filters about to be set:", {
+      stagedCategories,
+      stagedCuisines,
+      stagedSeasons,
+      stagedDietaryRestrictions,
+      stagedCookingMethods,
+      stagedMainIngredients,
+      stagedDifficultyLevels,
+      stagedOccasions,
+    });
+
     setSelectedCategories(stagedCategories);
     setSelectedCuisines(stagedCuisines);
     setSelectedSeasons(stagedSeasons);
@@ -249,9 +260,6 @@ const RecipesPage: React.FC = () => {
       setSelectedDifficultyLevels([]);
       setSelectedOccasions([]);
       setIsFilterOverlayOpen(false);
-      console.log("Filters applied. Selected filters now:", {
-        selectedCategories,
-      });
     }
   };
 
@@ -281,214 +289,226 @@ const RecipesPage: React.FC = () => {
 
       {/* Filter Overlay */}
       <div className={`filter-overlay ${isFilterOverlayOpen ? "open" : ""}`}>
-        <div className="filter-overlay-header">
-          <h2>Filter Recipes</h2>
-          <button onClick={toggleFilterOverlay} className="close-filter-button">
+        {/* ADD THIS NEW WRAPPER HERE */}
+        <div className="filter-overlay-content-wrapper">
+          <div className="filter-overlay-header">
+            <h2>Filter Recipes</h2>
+            {/* REMOVE THE CLOSE BUTTON FROM HERE */}
+            {/* <button onClick={toggleFilterOverlay} className="close-filter-button">
             &times;
-          </button>
-        </div>
-        <div className="filter-overlay-content">
-          {filtersLoading ? (
-            <div>Loading filter options...</div>
-          ) : filtersError ? (
-            <div style={{ color: "red" }}>Error: {filtersError}</div>
-          ) : filterOptions ? (
-            <div className="filter-options-grid">
-              {/* Categories */}
-              <div className="filter-group">
-                <h3>Categories</h3>
-                {filterOptions.categories.map((option) => (
-                  <label key={option.id} className="filter-checkbox-label">
-                    <input
-                      type="checkbox"
-                      value={option.id}
-                      checked={stagedCategories.includes(option.id)}
-                      onChange={(e) =>
-                        handleCheckboxChange(
-                          option.id,
-                          e.target.checked,
-                          setStagedCategories
-                        )
-                      }
-                    />
-                    {option.name}
-                  </label>
-                ))}
-              </div>
-
-              {/* Cuisines */}
-              <div className="filter-group">
-                <h3>Cuisines</h3>
-                {filterOptions.cuisines.map((option) => (
-                  <label key={option.id} className="filter-checkbox-label">
-                    <input
-                      type="checkbox"
-                      value={option.id}
-                      checked={stagedCuisines.includes(option.id)}
-                      onChange={(e) =>
-                        handleCheckboxChange(
-                          option.id,
-                          e.target.checked,
-                          setStagedCuisines
-                        )
-                      }
-                    />
-                    {option.name}
-                  </label>
-                ))}
-              </div>
-
-              {/* Seasons */}
-              <div className="filter-group">
-                <h3>Seasons</h3>
-                {filterOptions.seasons.map((option) => (
-                  <label key={option.id} className="filter-checkbox-label">
-                    <input
-                      type="checkbox"
-                      value={option.id}
-                      checked={stagedSeasons.includes(option.id)}
-                      onChange={(e) =>
-                        handleCheckboxChange(
-                          option.id,
-                          e.target.checked,
-                          setStagedSeasons
-                        )
-                      }
-                    />
-                    {option.name}
-                  </label>
-                ))}
-              </div>
-
-              {/* Dietary Restrictions */}
-              <div className="filter-group">
-                <h3>Dietary Restrictions</h3>
-                {filterOptions.dietaryRestrictions.map((option) => (
-                  <label key={option.id} className="filter-checkbox-label">
-                    <input
-                      type="checkbox"
-                      value={option.id}
-                      checked={stagedDietaryRestrictions.includes(option.id)}
-                      onChange={(e) =>
-                        handleCheckboxChange(
-                          option.id,
-                          e.target.checked,
-                          setStagedDietaryRestrictions
-                        )
-                      }
-                    />
-                    {option.name}
-                  </label>
-                ))}
-              </div>
-
-              {/* Cooking Methods */}
-              <div className="filter-group">
-                <h3>Cooking Methods</h3>
-                {filterOptions.cookingMethods.map((option) => (
-                  <label key={option.id} className="filter-checkbox-label">
-                    <input
-                      type="checkbox"
-                      value={option.id}
-                      checked={stagedCookingMethods.includes(option.id)}
-                      onChange={(e) =>
-                        handleCheckboxChange(
-                          option.id,
-                          e.target.checked,
-                          setStagedCookingMethods
-                        )
-                      }
-                    />
-                    {option.name}
-                  </label>
-                ))}
-              </div>
-
-              {/* Main Ingredients */}
-              <div className="filter-group">
-                <h3>Main Ingredients</h3>
-                {filterOptions.mainIngredients.map((option) => (
-                  <label key={option.id} className="filter-checkbox-label">
-                    <input
-                      type="checkbox"
-                      value={option.id}
-                      checked={stagedMainIngredients.includes(option.id)}
-                      onChange={(e) =>
-                        handleCheckboxChange(
-                          option.id,
-                          e.target.checked,
-                          setStagedMainIngredients
-                        )
-                      }
-                    />
-                    {option.name}
-                  </label>
-                ))}
-              </div>
-
-              {/* Difficulty Levels */}
-              <div className="filter-group">
-                <h3>Difficulty Level</h3>
-                {filterOptions.difficultyLevels
-                  .sort(
-                    (a, b) =>
-                      (a.level_order || 0) - (b.level_order || 0) ||
-                      a.name.localeCompare(b.name)
-                  )
-                  .map((option) => (
+          </button> */}
+          </div>
+          <div className="filter-overlay-content">
+            {filtersLoading ? (
+              <div>Loading filter options...</div>
+            ) : filtersError ? (
+              <div style={{ color: "red" }}>Error: {filtersError}</div>
+            ) : filterOptions ? (
+              <div className="filter-options-grid">
+                {/* Categories */}
+                <div className="filter-group">
+                  <h3>Categories</h3>
+                  {filterOptions.categories.map((option) => (
                     <label key={option.id} className="filter-checkbox-label">
                       <input
                         type="checkbox"
                         value={option.id}
-                        checked={stagedDifficultyLevels.includes(option.id)}
+                        checked={stagedCategories.includes(option.id)}
                         onChange={(e) =>
                           handleCheckboxChange(
                             option.id,
                             e.target.checked,
-                            setStagedDifficultyLevels
+                            setStagedCategories
                           )
                         }
                       />
                       {option.name}
                     </label>
                   ))}
-              </div>
+                </div>
 
-              {/* Occasions */}
-              <div className="filter-group">
-                <h3>Occasions</h3>
-                {filterOptions.occasions.map((option) => (
-                  <label key={option.id} className="filter-checkbox-label">
-                    <input
-                      type="checkbox"
-                      value={option.id}
-                      checked={stagedOccasions.includes(option.id)}
-                      onChange={(e) =>
-                        handleCheckboxChange(
-                          option.id,
-                          e.target.checked,
-                          setStagedOccasions
-                        )
-                      }
-                    />
-                    {option.name}
-                  </label>
-                ))}
+                {/* Cuisines */}
+                <div className="filter-group">
+                  <h3>Cuisines</h3>
+                  {filterOptions.cuisines.map((option) => (
+                    <label key={option.id} className="filter-checkbox-label">
+                      <input
+                        type="checkbox"
+                        value={option.id}
+                        checked={stagedCuisines.includes(option.id)}
+                        onChange={(e) =>
+                          handleCheckboxChange(
+                            option.id,
+                            e.target.checked,
+                            setStagedCuisines
+                          )
+                        }
+                      />
+                      {option.name}
+                    </label>
+                  ))}
+                </div>
+
+                {/* Seasons */}
+                <div className="filter-group">
+                  <h3>Seasons</h3>
+                  {filterOptions.seasons.map((option) => (
+                    <label key={option.id} className="filter-checkbox-label">
+                      <input
+                        type="checkbox"
+                        value={option.id}
+                        checked={stagedSeasons.includes(option.id)}
+                        onChange={(e) =>
+                          handleCheckboxChange(
+                            option.id,
+                            e.target.checked,
+                            setStagedSeasons
+                          )
+                        }
+                      />
+                      {option.name}
+                    </label>
+                  ))}
+                </div>
+
+                {/* Dietary Restrictions */}
+                <div className="filter-group">
+                  <h3>Dietary Restrictions</h3>
+                  {filterOptions.dietaryRestrictions.map((option) => (
+                    <label key={option.id} className="filter-checkbox-label">
+                      <input
+                        type="checkbox"
+                        value={option.id}
+                        checked={stagedDietaryRestrictions.includes(option.id)}
+                        onChange={(e) =>
+                          handleCheckboxChange(
+                            option.id,
+                            e.target.checked,
+                            setStagedDietaryRestrictions
+                          )
+                        }
+                      />
+                      {option.name}
+                    </label>
+                  ))}
+                </div>
+
+                {/* Cooking Methods */}
+                <div className="filter-group">
+                  <h3>Cooking Methods</h3>
+                  {filterOptions.cookingMethods.map((option) => (
+                    <label key={option.id} className="filter-checkbox-label">
+                      <input
+                        type="checkbox"
+                        value={option.id}
+                        checked={stagedCookingMethods.includes(option.id)}
+                        onChange={(e) =>
+                          handleCheckboxChange(
+                            option.id,
+                            e.target.checked,
+                            setStagedCookingMethods
+                          )
+                        }
+                      />
+                      {option.name}
+                    </label>
+                  ))}
+                </div>
+
+                {/* Main Ingredients */}
+                <div className="filter-group">
+                  <h3>Main Ingredients</h3>
+                  {filterOptions.mainIngredients.map((option) => (
+                    <label key={option.id} className="filter-checkbox-label">
+                      <input
+                        type="checkbox"
+                        value={option.id}
+                        checked={stagedMainIngredients.includes(option.id)}
+                        onChange={(e) =>
+                          handleCheckboxChange(
+                            option.id,
+                            e.target.checked,
+                            setStagedMainIngredients
+                          )
+                        }
+                      />
+                      {option.name}
+                    </label>
+                  ))}
+                </div>
+
+                {/* Difficulty Levels */}
+                <div className="filter-group">
+                  <h3>Difficulty Level</h3>
+                  {filterOptions.difficultyLevels
+                    .sort(
+                      (a, b) =>
+                        (a.level_order || 0) - (b.level_order || 0) ||
+                        a.name.localeCompare(b.name)
+                    )
+                    .map((option) => (
+                      <label key={option.id} className="filter-checkbox-label">
+                        <input
+                          type="checkbox"
+                          value={option.id}
+                          checked={stagedDifficultyLevels.includes(option.id)}
+                          onChange={(e) =>
+                            handleCheckboxChange(
+                              option.id,
+                              e.target.checked,
+                              setStagedDifficultyLevels
+                            )
+                          }
+                        />
+                        {option.name}
+                      </label>
+                    ))}
+                </div>
+
+                {/* Occasions */}
+                <div className="filter-group">
+                  <h3>Occasions</h3>
+                  {filterOptions.occasions.map((option) => (
+                    <label key={option.id} className="filter-checkbox-label">
+                      <input
+                        type="checkbox"
+                        value={option.id}
+                        checked={stagedOccasions.includes(option.id)}
+                        onChange={(e) =>
+                          handleCheckboxChange(
+                            option.id,
+                            e.target.checked,
+                            setStagedOccasions
+                          )
+                        }
+                      />
+                      {option.name}
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
+          <div className="filter-overlay-footer">
+            {/* ADD THE CLOSE BUTTON HERE */}
+            <button
+              onClick={toggleFilterOverlay}
+              className="close-filter-button"
+            >
+              &times; Close
+            </button>
+            <button
+              onClick={() => clearAllFilters(false)}
+              className="clear-all-filters-button"
+            >
+              Clear All
+            </button>
+            <button onClick={applyFilters} className="apply-filters-button">
+              Apply Filters
+            </button>
+          </div>
         </div>
-        <div className="filter-overlay-footer">
-          <button
-            onClick={() => clearAllFilters(false)}
-            className="clear-all-filters-button"
-          >
-            Clear All
-          </button>
-          <button onClick={applyFilters} className="apply-filters-button">
-            Apply Filters
-          </button>
-        </div>
+        {/* END NEW WRAPPER */}
       </div>
 
       {/* Main content with recipes */}
