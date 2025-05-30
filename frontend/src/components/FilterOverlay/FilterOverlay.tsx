@@ -1,8 +1,11 @@
 // frontend/src/components/FilterOverlay/FilterOverlay.tsx
 
 import React, { useState, useEffect } from "react";
-import api from "../../api/api";
+import api from "../../api/api"; // Updated path if needed
 import "./FilterOverlay.css";
+// Import the default axios instance to use axios.isAxiosError
+import axios, { AxiosError } from "axios"; // Keep AxiosError for the type guard check
+// Import all necessary types from the centralized types file
 import type {
   FilterOption,
   FilterOptionsResponse,
@@ -26,13 +29,11 @@ const FilterOverlay: React.FC<FilterOverlayProps> = ({
   initialSelectedFilters,
   onClearAllFilters,
 }) => {
-  // States for available filter options (fetched once)
   const [filterOptions, setFilterOptions] =
     useState<FilterOptionsResponse | null>(null);
   const [filtersLoading, setFiltersLoading] = useState(true);
   const [filtersError, setFiltersError] = useState<string | null>(null);
 
-  // Consolidated state for staged/selected filters within the overlay (local to this component)
   const [stagedFilters, setStagedFilters] = useState<SelectedFilters>({
     categories: [],
     cuisines: [],
@@ -44,7 +45,6 @@ const FilterOverlay: React.FC<FilterOverlayProps> = ({
     occasions: [],
   });
 
-  // Effect to load filter options on component mount
   useEffect(() => {
     const fetchFilterOptions = async () => {
       setFiltersLoading(true);
@@ -52,36 +52,41 @@ const FilterOverlay: React.FC<FilterOverlayProps> = ({
       try {
         const response = await api.get<FilterOptionsResponse>("/data/filters");
         setFilterOptions(response.data);
-      } catch (err: any) {
-        // Keep any for now, better handled by global interceptor if possible
-        console.error("Error fetching filter options:", err);
-        setFiltersError(
-          err.response?.data?.message || "Failed to load filter options."
-        );
+      } catch (err: unknown) {
+        // Type guard to check if err is an AxiosError
+        if (axios.isAxiosError(err)) {
+          // Explicitly use AxiosError as a type, even if redundant with isAxiosError,
+          // to satisfy linters that might complain about "AxiosError defined but never used".
+          const axiosError: AxiosError = err;
+          console.error("Error fetching filter options:", axiosError);
+          setFiltersError(
+            axiosError.response?.data?.message ||
+              "Failed to load filter options."
+          );
+        } else if (err instanceof Error) {
+          // err is now known to be an instance of Error
+          console.error("General error fetching filter options:", err.message);
+          setFiltersError(err.message || "An unexpected error occurred.");
+        } else {
+          // Handle other unknown error types by converting them to a string
+          console.error("An unknown error occurred:", err);
+          setFiltersError(`An unknown error occurred: ${String(err)}`);
+        }
       } finally {
         setFiltersLoading(false);
       }
     };
     fetchFilterOptions();
-  }, []); // Empty dependency array means this runs once on mount
+  }, []);
 
-  // Effect to sync initialSelectedFilters from parent to staged filters when overlay opens
-  // This ensures the overlay always opens with the currently active filters
   useEffect(() => {
     if (isOpen) {
       setStagedFilters({ ...initialSelectedFilters });
     }
   }, [isOpen, initialSelectedFilters]);
 
-  /**
-   * Generic handler for checkbox changes in the filter overlay.
-   * Updates the corresponding array within the stagedFilters state object.
-   * @param filterType The key of the filter category in SelectedFilters (e.g., 'categories', 'cuisines').
-   * @param id The ID of the filter option being toggled.
-   * @param isChecked The new checked state of the checkbox.
-   */
   const handleCheckboxChange = (
-    filterType: keyof SelectedFilters, // 'categories' | 'cuisines' | etc.
+    filterType: keyof SelectedFilters,
     id: number,
     isChecked: boolean
   ) => {
@@ -93,33 +98,27 @@ const FilterOverlay: React.FC<FilterOverlayProps> = ({
     }));
   };
 
-  // Handler for "Apply Filters" button click
   const handleApply = () => {
-    onApplyFilters(stagedFilters); // Pass the entire stagedFilters object
-    onClose(); // Close the overlay after applying
+    onApplyFilters(stagedFilters);
+    onClose();
   };
 
-  // Handler for "Clear All" button click
   const handleClearAll = () => {
-    onClearAllFilters(); // Parent handles resetting to profile defaults or empty
-    onClose(); // Close the overlay
+    onClearAllFilters();
+    onClose();
   };
 
-  // Handle clicks outside the overlay content (backdrop)
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
-      onClose(); // Close the overlay if the backdrop is clicked
+      onClose();
     }
   };
 
-  // No `if (!isOpen) return null;` here, as CSS handles visibility for smooth transitions.
-
-  // Helper function to render a filter group
   const renderFilterGroup = (
     title: string,
     options: FilterOption[],
     filterType: keyof SelectedFilters,
-    sortOptions?: boolean // Optional: pass true to sort Difficulty Levels
+    sortOptions?: boolean
   ) => {
     if (!options || options.length === 0) return null;
 
@@ -204,8 +203,7 @@ const FilterOverlay: React.FC<FilterOverlayProps> = ({
                 filterOptions.difficultyLevels,
                 "difficultyLevels",
                 true
-              )}{" "}
-              {/* Pass true to sort */}
+              )}
               {renderFilterGroup(
                 "Occasions",
                 filterOptions.occasions,

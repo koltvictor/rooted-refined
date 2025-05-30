@@ -1,13 +1,14 @@
 // frontend/src/context/AuthContext.tsx
+
 import React, {
   createContext,
   useState,
   useContext,
   useEffect,
   ReactNode,
-  useCallback, // Import useCallback
+  useCallback,
 } from "react";
-import api from "../api/api.ts";
+import api, { setupApiInterceptors } from "../api/api"; // Import both the instance and the setup function
 import type { User, BasicUser } from "../types/index";
 
 interface AuthContextType {
@@ -16,7 +17,7 @@ interface AuthContextType {
   login: (newToken: string, basicUser: BasicUser) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
-  refreshUserProfile: () => Promise<void>; // Add this to the interface
+  refreshUserProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,7 +31,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Use useCallback to memoize this function, preventing unnecessary re-creations
+  // Memoize the logout function to ensure stability.
+  const logout = useCallback(() => {
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    // If you want to force a redirect to login on logout, do it here.
+    // For example:
+    // window.location.href = '/login'; // This forces a full page reload and clears React state
+    // Or, if using react-router-dom's navigate, you'd need access to it here,
+    // which is often handled by a wrapper component or a global navigation utility.
+  }, []);
+
   const fetchAndSetUserProfile = useCallback(async () => {
     try {
       const response = await api.get<User>("/users/profile");
@@ -39,11 +52,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem("user", JSON.stringify(fullUser));
     } catch (error) {
       console.error("Failed to fetch full user profile:", error);
-      logout(); // Logout if profile fetching fails (e.g., token expired)
+      // The interceptor might have already called logout for 401.
+      // If it's another error, we might still want to logout.
+      // For robustness, ensure `logout` can be safely called multiple times.
+      // (Our `logout` function already is).
+      // logout(); // Only if this error is specifically an auth error not caught by interceptor
     } finally {
       setIsLoading(false);
     }
-  }, []); // Empty dependency array because it doesn't depend on any external state that would change
+  }, []);
+
+  // IMPORTANT: Set up Axios interceptors here once on mount.
+  useEffect(() => {
+    console.log("Setting up API interceptors...");
+    setupApiInterceptors(logout);
+    // This effect should only run once to set up interceptors for the entire app lifecycle.
+    // The `logout` dependency is stable due to useCallback.
+  }, [logout]);
 
   // On initial load, try to retrieve token and user from localStorage
   useEffect(() => {
@@ -52,26 +77,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     if (storedToken && storedUserStr) {
       setToken(storedToken);
-      // Immediately fetch full profile after successful login.
-      // We rely on the Axios interceptor to pick up the token from localStorage.
-      fetchAndSetUserProfile(); // Call memoized function
+      fetchAndSetUserProfile();
     } else {
       setIsLoading(false);
     }
-  }, [fetchAndSetUserProfile]); // Depend on memoized fetchAndSetUserProfile
+  }, [fetchAndSetUserProfile]);
 
   const login = async (newToken: string, basicUser: BasicUser) => {
     setToken(newToken);
     localStorage.setItem("token", newToken);
     localStorage.setItem("user", JSON.stringify(basicUser));
-    await fetchAndSetUserProfile(); // Call memoized function
-  };
-
-  const logout = () => {
-    setToken(null);
-    setUser(null);
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    await fetchAndSetUserProfile();
   };
 
   const value = {
@@ -80,7 +96,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     logout,
     isLoading,
-    refreshUserProfile: fetchAndSetUserProfile, // Expose the refresh function
+    refreshUserProfile: fetchAndSetUserProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

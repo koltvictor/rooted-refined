@@ -1,20 +1,15 @@
 // frontend/src/types/index.ts
 
-/**
- * Defines the structure for a generic filter option.
- * This can represent categories, cuisines, dietary restrictions, etc.
- */
-export type FilterOption = {
-  id: number;
-  name: string;
-  level_order?: number; // Optional, specifically for difficulty levels (e.g., for sorting)
-};
+// --- API Response Types ---
+export interface PaginatedRecipesResponse {
+  recipes: Recipe[];
+  totalRecipes: number;
+  // page: number; // Add if your API returns pagination info
+  // limit: number;
+  // totalPages: number;
+}
 
-/**
- * Defines the comprehensive structure for all available filter options
- * returned by the API.
- */
-export type FilterOptionsResponse = {
+export interface FilterOptionsResponse {
   categories: FilterOption[];
   cuisines: FilterOption[];
   seasons: FilterOption[];
@@ -23,13 +18,74 @@ export type FilterOptionsResponse = {
   mainIngredients: FilterOption[];
   difficultyLevels: FilterOption[];
   occasions: FilterOption[];
-};
+}
 
-/**
- * Defines the structure for selected filters that are passed to the API.
- * These are arrays of IDs.
- */
-export type SelectedFilters = {
+// --- General Data Model Types ---
+export interface FilterOption {
+  id: number;
+  name: string;
+  level_order?: number; // Optional, specifically for Difficulty Levels
+}
+
+export interface Recipe {
+  id: number;
+  title: string;
+  description: string;
+  instructions: string;
+  prep_time: number;
+  cook_time: number;
+  servings: number;
+  image_url?: string; // Optional
+  video_url?: string; // Optional
+  is_public: boolean;
+  average_rating: number; // Add if you have ratings
+  total_ratings: number; // Add if you have ratings
+  created_at: string; // ISO date string
+  updated_at: string; // ISO date string
+  username: string; // Author's username
+  user_id: number; // Author's user ID
+
+  // Add IDs of related entities (normalized data)
+  category_id: number;
+  cuisine_id: number;
+  season_id?: number; // Optional
+  difficulty_level_id: number;
+
+  // Arrays of associated IDs (for filtering)
+  dietary_restriction_ids: number[];
+  cooking_method_ids: number[];
+  main_ingredient_ids: number[];
+  occasion_ids: number[];
+
+  // Full objects for displaying (if fetched hydrated)
+  // These would usually be fetched separately or populated in a detailed view
+  // category?: FilterOption;
+  // cuisine?: FilterOption;
+  // dietary_restrictions?: FilterOption[];
+  // ... and so on for other filters
+}
+
+// --- User Related Types ---
+export interface UserProfile {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  bio: string | null;
+  profile_picture_url: string | null;
+  dietary_restrictions: FilterOption[]; // Array of FilterOption objects
+}
+
+export interface BasicUser {
+  id: number;
+  username: string;
+  email: string;
+  // Add other basic properties received upon login, if any
+}
+
+// --- Filter Overlay Related Types ---
+export interface SelectedFilters {
   categories: number[];
   cuisines: number[];
   seasons: number[];
@@ -38,61 +94,4 @@ export type SelectedFilters = {
   mainIngredients: number[];
   difficultyLevels: number[];
   occasions: number[];
-};
-
-/**
- * Defines the core structure for a Recipe.
- */
-export type Recipe = {
-  id: number;
-  title: string;
-  description: string;
-  instructions: string;
-  prep_time_minutes?: number | null; // Allow null for optional fields
-  cook_time_minutes?: number | null;
-  servings?: number | null;
-  image_url?: string | null;
-  created_at: string; // ISO 8601 string date
-  updated_at: string; // ISO 8601 string date
-  user_id?: number; // Optional, if creator info is embedded
-  username?: string; // Optional, if creator info is embedded
-};
-
-/**
- * Defines the structure for a paginated list of recipes.
- */
-export type PaginatedRecipesResponse = {
-  recipes: Recipe[];
-  currentPage: number;
-  perPage: number;
-  totalItems: number;
-  totalPages: number;
-  hasMore: boolean;
-};
-
-/**
- * Defines the comprehensive structure for a User profile.
- * This should mirror your backend User/UserProfile model.
- */
-export type User = {
-  id: number;
-  username: string;
-  email: string;
-  is_admin?: boolean;
-  first_name?: string | null;
-  last_name?: string | null;
-  bio?: string | null;
-  profile_picture_url?: string | null;
-  dietary_restrictions?: FilterOption[]; // Uses the centralized FilterOption
-  // Add other user profile fields here as they are added to the backend
-};
-
-/**
- * Defines the basic user info received upon login/registration before full profile fetch.
- */
-export type BasicUser = {
-  id: number;
-  username: string;
-  email: string;
-  is_admin?: boolean;
-};
+}

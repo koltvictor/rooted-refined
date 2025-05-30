@@ -1,12 +1,21 @@
 // frontend/src/pages/UserProfilePage.tsx
 
-import React, { useState, useEffect, FormEvent } from "react";
-import api from "../api/api";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
-import "./UserProfilePage.css"; // We will create this CSS file next
-import { useAuth } from "../context/AuthContext";
+import React, { useState, useEffect } from "react";
+import type { FormEvent } from "react";
+import api from "../api/api"; // Updated path if needed after previous step
+import { useNavigate } from "react-router-dom";
+import "./UserProfilePage.css";
+import { useAuth } from "../context/AuthContext"; // Updated path if needed
 
-// Define interfaces for data structures
+// Import all necessary types from the centralized types file
+import type {
+  FilterOption, // Keep this if you need to specifically type a variable as FilterOption within the component
+  UserProfile,
+  FilterOptionsResponse,
+} from "../types/index";
+
+// Removed these interfaces as they are now in types/index.ts:
+/*
 interface UserProfile {
   id: number;
   username: string;
@@ -27,27 +36,26 @@ interface FilterOptionsResponse {
   dietaryRestrictions: FilterOption[]; // Only need dietary restrictions from this
   // Add other filter types here if you want to display/edit them on the profile
 }
+*/
 
 const getFullImageUrl = (
   relativePath: string | null | undefined
 ): string | null => {
   if (!relativePath) return null;
-  // Use import.meta.env for Vite environment variables
-  // Ensure VITE_BACKEND_URL is defined in your frontend/.env file
   const backendBaseUrl =
     import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
   return `${backendBaseUrl}${relativePath}`;
 };
 
 const UserProfilePage: React.FC = () => {
-  const { user: authUser, login: authLogin, refreshUserProfile } = useAuth();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const { user: authUser, refreshUserProfile } = useAuth(); // Destructure refreshUserProfile
+  const [profile, setProfile] = useState<UserProfile | null>(null); // Use imported UserProfile
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState<Partial<UserProfile>>({}); // For editable form data
+  const [formData, setFormData] = useState<Partial<UserProfile>>({}); // Use imported UserProfile
   const [availableDietaryRestrictions, setAvailableDietaryRestrictions] =
-    useState<FilterOption[]>([]);
+    useState<FilterOption[]>([]); // Use imported FilterOption
   const [selectedDietaryRestrictionIds, setSelectedDietaryRestrictionIds] =
     useState<number[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -67,9 +75,9 @@ const UserProfilePage: React.FC = () => {
   const [profilePicturePreview, setProfilePicturePreview] = useState<
     string | null
   >(null);
-  const [clearProfilePicture, setClearProfilePicture] = useState(false); // New state to clear existing photo
+  const [clearProfilePicture, setClearProfilePicture] = useState(false);
 
-  const navigate = useNavigate(); // Initialize useNavigate hook
+  const navigate = useNavigate();
 
   // Effect to fetch user profile data
   useEffect(() => {
@@ -77,9 +85,9 @@ const UserProfilePage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await api.get<UserProfile>("/users/profile");
+        const response = await api.get<UserProfile>("/users/profile"); // Use imported UserProfile
         setProfile(response.data);
-        setFormData(response.data); // Initialize form data with fetched profile
+        setFormData(response.data);
         setSelectedDietaryRestrictionIds(
           response.data.dietary_restrictions.map((dr) => dr.id)
         );
@@ -89,7 +97,6 @@ const UserProfilePage: React.FC = () => {
       } catch (err: any) {
         console.error("Error fetching user profile:", err);
         setError(err.response?.data?.message || "Failed to load profile.");
-        // If 401/403, redirect to login
         if (err.response?.status === 401 || err.response?.status === 403) {
           navigate("/login");
         }
@@ -100,19 +107,18 @@ const UserProfilePage: React.FC = () => {
 
     const fetchAvailableDietaryRestrictions = async () => {
       try {
-        const response = await api.get<FilterOptionsResponse>("/data/filters");
+        const response = await api.get<FilterOptionsResponse>("/data/filters"); // Use imported FilterOptionsResponse
         setAvailableDietaryRestrictions(
           response.data.dietaryRestrictions || []
         );
       } catch (err: any) {
         console.error("Error fetching available dietary restrictions:", err);
-        // Don't block profile load if this fails, but set error
       }
     };
 
     fetchUserProfile();
     fetchAvailableDietaryRestrictions();
-  }, [navigate, authUser]); // Add navigate to dependency array
+  }, [navigate, authUser]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -125,11 +131,10 @@ const UserProfilePage: React.FC = () => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setSelectedFile(file);
-      setProfilePicturePreview(URL.createObjectURL(file)); // Create a local URL for preview
+      setProfilePicturePreview(URL.createObjectURL(file));
       setClearProfilePicture(false);
     } else {
       setSelectedFile(null);
-      // --- CHANGE 2: Use getFullImageUrl when resetting preview to current ---
       setProfilePicturePreview(
         profile ? getFullImageUrl(profile.profile_picture_url) : null
       );
@@ -137,9 +142,9 @@ const UserProfilePage: React.FC = () => {
   };
 
   const handleClearProfilePicture = () => {
-    setSelectedFile(null); // No new file selected
-    setProfilePicturePreview(null); // Clear preview
-    setClearProfilePicture(true); // Flag to tell backend to clear
+    setSelectedFile(null);
+    setProfilePicturePreview(null);
+    setClearProfilePicture(true);
   };
 
   const handleDietaryRestrictionChange = (id: number, isChecked: boolean) => {
@@ -154,9 +159,7 @@ const UserProfilePage: React.FC = () => {
     setSaveMessage(null);
     setError(null);
 
-    const formDataToSend = new FormData(); // Use FormData for file uploads
-
-    // Append text fields
+    const formDataToSend = new FormData();
     formDataToSend.append("username", formData.username || "");
     formDataToSend.append("email", formData.email || "");
     formDataToSend.append("first_name", formData.first_name || "");
@@ -164,15 +167,12 @@ const UserProfilePage: React.FC = () => {
     formDataToSend.append("bio", formData.bio || "");
 
     if (selectedFile) {
-      // If a new file is selected, append it
-      formDataToSend.append("profile_picture", selectedFile); // 'profile_picture' matches multer field name
+      formDataToSend.append("profile_picture", selectedFile);
     }
     if (clearProfilePicture) {
-      // If user explicitly chose to clear
       formDataToSend.append("clear_profile_picture", "true");
     }
 
-    // Append dietary restrictions (send as JSON string for array)
     formDataToSend.append(
       "dietary_restrictions",
       JSON.stringify(selectedDietaryRestrictionIds)
@@ -187,32 +187,13 @@ const UserProfilePage: React.FC = () => {
       setSaveMessage("Profile updated successfully!");
       setIsEditing(false);
 
-      if (authUser) {
-        const updatedProfileResponse = await api.get<UserProfile>(
-          "/users/profile"
-        );
-
-        // Update local component state
-        setProfile(updatedProfileResponse.data);
-        setFormData(updatedProfileResponse.data);
-        setSelectedDietaryRestrictionIds(
-          updatedProfileResponse.data.dietary_restrictions.map((dr) => dr.id)
-        );
-        setProfilePicturePreview(
-          getFullImageUrl(updatedProfileResponse.data.profile_picture_url)
-        );
-        setSelectedFile(null);
-        setClearProfilePicture(false); // <--- Removed the extra semicolon here
-
-        if (refreshUserProfile) {
-          await refreshUserProfile();
-        } else {
-          console.warn("refreshUserProfile is not available in AuthContext.");
-        }
+      if (refreshUserProfile) {
+        await refreshUserProfile();
+      } else {
+        console.warn("refreshUserProfile is not available in AuthContext.");
       }
     } catch (err: any) {
       console.error("Error saving profile:", err);
-      // Check for specific multer errors from backend
       if (err.response?.data?.message) {
         if (err.response.data.message.includes("File size too large")) {
           setError("File size too large. Max 5MB.");
@@ -245,7 +226,6 @@ const UserProfilePage: React.FC = () => {
       return;
     }
 
-    // Basic password strength check (optional, but good practice)
     if (newPassword.length < 8) {
       setPasswordChangeError(
         "New password must be at least 8 characters long."
@@ -260,7 +240,6 @@ const UserProfilePage: React.FC = () => {
         newPassword,
       });
       setPasswordChangeMessage("Password updated successfully!");
-      // Clear password fields on success
       setCurrentPassword("");
       setNewPassword("");
       setConfirmNewPassword("");
@@ -272,7 +251,6 @@ const UserProfilePage: React.FC = () => {
     } finally {
       setIsChangingPassword(false);
       setTimeout(() => {
-        // Clear messages after a few seconds
         setPasswordChangeMessage(null);
         setPasswordChangeError(null);
       }, 5000);
@@ -284,12 +262,10 @@ const UserProfilePage: React.FC = () => {
   }
 
   if (error && !profile) {
-    // Only show full error if profile couldn't load at all
     return <div className="user-profile-container error-message">{error}</div>;
   }
 
   if (!profile) {
-    // This case should ideally not be reached if loading/error handling is robust
     return (
       <div className="user-profile-container">No profile data available.</div>
     );
@@ -299,11 +275,9 @@ const UserProfilePage: React.FC = () => {
     <div className="user-profile-container">
       <h1 className="profile-header">{profile?.username}'s Profile</h1>
       {saveMessage && <div className="success-message">{saveMessage}</div>}
-      {error && isEditing && <div className="error-message">{error}</div>}{" "}
-      {/* Show error if saving fails */}
+      {error && isEditing && <div className="error-message">{error}</div>}
       {isEditing ? (
         <form onSubmit={handleSaveProfile} className="profile-form">
-          {/* Profile Picture Upload Field */}
           <div className="form-group profile-picture-upload-group">
             <h3>Profile Picture</h3>
             <div className="profile-picture-preview-container">
@@ -324,12 +298,12 @@ const UserProfilePage: React.FC = () => {
               <input
                 type="file"
                 name="profile_picture"
-                accept="image/*" // Accept any image type
+                accept="image/*"
                 onChange={handleFileChange}
                 className="form-input file-input"
               />
             </label>
-            {(profile?.profile_picture_url || selectedFile) && ( // Show clear button only if there's an image
+            {(profile?.profile_picture_url || selectedFile) && (
               <button
                 type="button"
                 onClick={handleClearProfilePicture}
@@ -422,15 +396,20 @@ const UserProfilePage: React.FC = () => {
               type="button"
               onClick={() => {
                 setIsEditing(false);
-                setFormData(profile);
-                setSelectedDietaryRestrictionIds(
-                  profile.dietary_restrictions.map((dr) => dr.id)
-                );
+                // Ensure profile is not null before using it
+                if (profile) {
+                  setFormData(profile);
+                  setSelectedDietaryRestrictionIds(
+                    profile.dietary_restrictions.map((dr) => dr.id)
+                  );
+                  setProfilePicturePreview(
+                    getFullImageUrl(profile.profile_picture_url)
+                  );
+                }
                 setSaveMessage(null);
                 setError(null);
-                setSelectedFile(null); // Clear selected file on cancel
-                setProfilePicturePreview(profile?.profile_picture_url || null); // Reset preview
-                setClearProfilePicture(false); // Reset clear flag
+                setSelectedFile(null);
+                setClearProfilePicture(false);
               }}
               className="cancel-button"
             >
@@ -479,7 +458,6 @@ const UserProfilePage: React.FC = () => {
               Edit Profile
             </button>
 
-            {/* Button to open password change overlay */}
             <button
               onClick={() => setShowPasswordOverlay(true)}
               className="update-password-button"
@@ -489,7 +467,6 @@ const UserProfilePage: React.FC = () => {
           </div>
         </div>
       )}
-      {/* Password Change Overlay (remains the same) */}
       {showPasswordOverlay && (
         <div className="password-overlay-backdrop">
           <div className="password-overlay-content">

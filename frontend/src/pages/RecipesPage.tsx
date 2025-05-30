@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
-import api from "../api/api.ts";
+import api from "../api/api"; // Updated path
 import "./RecipesPage.css";
 import { useDebounce } from "../utils/hooks";
-import { useAuth } from "../context/AuthContext"; // Corrected path if needed, ensure this is correct
+import { useAuth } from "../context/AuthContext"; // Updated path
 import FilterOverlay from "../components/FilterOverlay/FilterOverlay";
 
 // Import all necessary types from the centralized types file
@@ -13,17 +13,17 @@ import type {
   Recipe,
   PaginatedRecipesResponse,
   SelectedFilters,
+  // User, // Removed 'User' from here if it's not directly used as a type annotation for a variable within this file
 } from "../types/index";
 
 const RecipesPage: React.FC = () => {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth(); // 'user' implicitly has type User | null from AuthContext
 
   const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Consolidated state for currently selected filters (used for API call)
   const [selectedFilters, setSelectedFilters] = useState<SelectedFilters>({
     categories: [],
     cuisines: [],
@@ -35,21 +35,13 @@ const RecipesPage: React.FC = () => {
     occasions: [],
   });
 
-  // State for the filter overlay visibility
   const [isFilterOverlayOpen, setIsFilterOverlayOpen] = useState(false);
 
-  // Debounced search term for API call
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-  // This ref ensures that initial dietary restrictions are set ONLY ONCE
-  // when the component first mounts or user data is initially loaded.
   const initialDietaryRestrictionsSet = useRef(false);
 
-  // Effect to set initial dietary restrictions from user profile on component mount
-  // or when the user object initially loads.
   useEffect(() => {
-    // Only proceed if auth loading is complete and user data is available
-    // and if we haven't already set the initial dietary restrictions for this session.
     if (
       !authLoading &&
       user?.dietary_restrictions &&
@@ -61,14 +53,9 @@ const RecipesPage: React.FC = () => {
         ...prevFilters,
         dietaryRestrictions: profileDRIds,
       }));
-      // Mark that initial dietary restrictions have been set for this session
       initialDietaryRestrictionsSet.current = true;
-    }
-    // If a user logs out while on the page, reset the flag so that if they log back in
-    // during the same session, the initial dietary restrictions are reapplied.
-    else if (!authLoading && !user && initialDietaryRestrictionsSet.current) {
+    } else if (!authLoading && !user && initialDietaryRestrictionsSet.current) {
       initialDietaryRestrictionsSet.current = false;
-      // Optionally clear all filters if user logs out to show all recipes
       setSelectedFilters({
         categories: [],
         cuisines: [],
@@ -80,14 +67,12 @@ const RecipesPage: React.FC = () => {
         occasions: [],
       });
     }
-  }, [authLoading, user]); // Depend on authLoading and user for this
+  }, [authLoading, user]);
 
-  // Effect to fetch recipes based on search term and selected filters
   useEffect(() => {
-    // Do not fetch recipes until authentication status is resolved.
     if (authLoading) {
       setLoading(true);
-      return; // Prevent fetching before user data is ready
+      return;
     }
 
     const fetchRecipes = async () => {
@@ -118,18 +103,12 @@ const RecipesPage: React.FC = () => {
       }
     };
     fetchRecipes();
-  }, [
-    debouncedSearchTerm,
-    selectedFilters, // This dependency is key: changes here trigger a re-fetch
-    authLoading,
-  ]);
+  }, [debouncedSearchTerm, selectedFilters, authLoading]);
 
-  // Memoized value for instant feedback on search
   const displayedRecipes = useMemo(() => {
     if (!searchTerm) {
       return allRecipes;
     }
-    // Filter by title or description based on local searchTerm
     return allRecipes.filter(
       (recipe) =>
         recipe.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -145,30 +124,23 @@ const RecipesPage: React.FC = () => {
     setSearchTerm("");
   };
 
-  // This callback receives the entire SelectedFilters object from the overlay
   const handleApplyFiltersFromOverlay = (appliedFilters: SelectedFilters) => {
-    // When filters are applied from the overlay, update the state.
-    // This will cause the main useEffect to re-fetch recipes with the new filters.
     setSelectedFilters(appliedFilters);
-    setIsFilterOverlayOpen(false); // Close overlay
+    setIsFilterOverlayOpen(false);
   };
 
   const handleClearAllFiltersFromOverlay = () => {
-    // When "Clear All" is clicked, we want to clear ALL filters,
-    // including any initial dietary restrictions.
     setSelectedFilters({
       categories: [],
       cuisines: [],
       seasons: [],
-      dietaryRestrictions: [], // Explicitly clear dietary restrictions here
+      dietaryRestrictions: [],
       cookingMethods: [],
       mainIngredients: [],
       difficultyLevels: [],
       occasions: [],
     });
-    setIsFilterOverlayOpen(false); // Close overlay
-    // No need to reset initialDietaryRestrictionsSet.current here,
-    // as it relates to the *initial load* behavior, not explicit filter clearing.
+    setIsFilterOverlayOpen(false);
   };
 
   if (authLoading) {
@@ -211,10 +183,9 @@ const RecipesPage: React.FC = () => {
         onClose={() => setIsFilterOverlayOpen(false)}
         onApplyFilters={handleApplyFiltersFromOverlay}
         onClearAllFilters={handleClearAllFiltersFromOverlay}
-        initialSelectedFilters={selectedFilters} // Pass the current consolidated state to the overlay
+        initialSelectedFilters={selectedFilters}
       />
 
-      {/* Main content with recipes */}
       {loading && allRecipes.length === 0 ? (
         <div className="loading-message">Loading recipes...</div>
       ) : error ? (

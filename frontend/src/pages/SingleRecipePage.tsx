@@ -15,6 +15,17 @@ interface Ingredient {
   notes?: string;
 }
 
+// Define a type for comments
+interface Comment {
+  id: number;
+  user_id: number;
+  username: string;
+  text: string;
+  created_at: string;
+  updated_at: string;
+  replies?: Comment[]; // For nested comments
+}
+
 interface SingleRecipe {
   id: number;
   title: string;
@@ -33,6 +44,7 @@ interface SingleRecipe {
   average_rating: number;
   total_ratings: number;
   current_user_rating: number;
+  comments: Comment[]; // Add comments array to the recipe type
 }
 
 const SingleRecipePage: React.FC = () => {
@@ -49,6 +61,10 @@ const SingleRecipePage: React.FC = () => {
   const [numRatings, setNumRatings] = useState(0);
   const [userCurrentRating, setUserCurrentRating] = useState(0);
 
+  // New state for comments
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState("");
+
   useEffect(() => {
     const fetchRecipe = async () => {
       if (!id) {
@@ -60,7 +76,9 @@ const SingleRecipePage: React.FC = () => {
         const response = await api.get(`/recipes/${id}`);
         const recipeData = response.data;
 
+        // Populate comments from the fetched recipe data
         setRecipe(recipeData);
+        setComments(recipeData.comments || []); // Initialize comments from the API response
         setIsFavorited(
           location.state?.isFavorited || recipeData.isFavorited || false
         );
@@ -235,6 +253,40 @@ const SingleRecipePage: React.FC = () => {
     ));
   };
 
+  // Function to handle posting a new comment
+  const handlePostComment = async () => {
+    if (!user) {
+      alert("Please log in to leave a comment!");
+      return;
+    }
+    if (!newComment.trim()) {
+      alert("Please enter a comment.");
+      return;
+    }
+
+    try {
+      //  Replace with your actual API endpoint for posting comments
+      const response = await api.post(`/recipes/${recipe?.id}/comments`, {
+        text: newComment,
+      });
+
+      // Assuming the API returns the newly created comment
+      const newCommentData: Comment = response.data;
+
+      // Update the state to include the new comment
+      setComments([...comments, newCommentData]);
+
+      // Clear the input field
+      setNewComment("");
+    } catch (error: any) {
+      console.error("Error posting comment:", error);
+      alert(
+        error.response?.data?.message ||
+          "Failed to post comment. Please try again."
+      );
+    }
+  };
+
   if (loading) {
     return <div className="single-recipe-container">Loading recipe...</div>;
   }
@@ -312,6 +364,47 @@ const SingleRecipePage: React.FC = () => {
         <h2 className="single-recipe-section-header">Instructions</h2>
         {parseInstructions(recipe.instructions)}
       </div>
+
+      {/* Comment Section */}
+      <div className="single-recipe-section">
+        <h2 className="single-recipe-section-header">Comments</h2>
+
+        {/* Display existing comments */}
+        {comments.length > 0 ? (
+          <ul className="single-recipe-comment-list">
+            {comments.map((comment) => (
+              <li key={comment.id} className="single-recipe-comment-item">
+                <div className="single-recipe-comment-header">
+                  <strong>{comment.username}</strong> -{" "}
+                  {new Date(comment.created_at).toLocaleDateString()}
+                </div>
+                <p className="single-recipe-comment-text">{comment.text}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>No comments yet.</p>
+        )}
+
+        {/* Add new comment input */}
+        {user && (
+          <div className="single-recipe-add-comment">
+            <textarea
+              className="single-recipe-comment-input"
+              placeholder="Add a comment..."
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+            />
+            <button
+              onClick={handlePostComment}
+              className="single-recipe-action-button single-recipe-comment-button"
+            >
+              Post Comment
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Action Buttons */}
       <div className="single-recipe-action-buttons">
         {canEditDelete && (
@@ -336,9 +429,6 @@ const SingleRecipePage: React.FC = () => {
         </button>
         <button className="single-recipe-action-button single-recipe-share-button">
           🔗 Share
-        </button>
-        <button className="single-recipe-action-button single-recipe-comment-button">
-          💬 Comment
         </button>
       </div>
       <Link to="/recipes" className="single-recipe-back-button">
