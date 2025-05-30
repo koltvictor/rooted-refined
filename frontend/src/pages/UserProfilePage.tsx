@@ -205,14 +205,12 @@ const UserProfilePage: React.FC = () => {
         setClearProfilePicture(false); // <--- Removed the extra semicolon here
 
         if (refreshUserProfile) {
-          // Assuming `refreshUserProfile` is destructured from `useAuth`
           await refreshUserProfile();
         } else {
           console.warn("refreshUserProfile is not available in AuthContext.");
         }
-      } // Removed the incorrect `else` block or duplicate `try-catch` structure around this.
+      }
     } catch (err: any) {
-      // This `catch` belongs to the main `try` block of `handleSaveProfile`
       console.error("Error saving profile:", err);
       // Check for specific multer errors from backend
       if (err.response?.data?.message) {
