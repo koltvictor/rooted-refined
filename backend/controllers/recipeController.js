@@ -359,6 +359,36 @@ exports.getRecipeById = async (req, res) => {
       currentUserRating = userRating ? userRating.rating : 0;
     }
 
+    const commentsRaw = await knex("comments")
+      .select(
+        "comments.id",
+        "comments.user_id",
+        "users.username", // Join to get username
+        "comments.text",
+        "comments.parent_comment_id",
+        "comments.created_at",
+        "comments.updated_at"
+      )
+      .leftJoin("users", "comments.user_id", "users.id")
+      .where("comments.recipe_id", id)
+      .orderBy("comments.created_at", "asc"); // Order by creation date
+
+    // Function to build a threaded comment structure
+    const buildCommentTree = (commentsList, parentId = null) => {
+      const tree = [];
+      commentsList
+        .filter((comment) => comment.parent_comment_id === parentId)
+        .forEach((comment) => {
+          tree.push({
+            ...comment,
+            replies: buildCommentTree(commentsList, comment.id),
+          });
+        });
+      return tree;
+    };
+
+    const comments = buildCommentTree(commentsRaw);
+
     // Fetch associated IDs from junction tables
     const categories = await fetchJunctionTableIds(
       knex,
@@ -424,6 +454,7 @@ exports.getRecipeById = async (req, res) => {
       main_ingredients,
       difficulty_levels,
       occasions,
+      comments,
     });
   } catch (error) {
     console.error(`Error fetching recipe ${id}:`, error.message);
@@ -761,5 +792,71 @@ exports.getMyFavorites = async (req, res) => {
       message: "Server error fetching favorited recipes.",
       error: error.message,
     });
+  }
+};
+
+/**
+ * @desc Post a new comment or reply to a recipe
+ * @route POST /api/recipes/:id/comments
+ * @access Private (requires authentication)
+ * @param {object} req - The request object (params: id, body: { text, parent_comment_id? }).
+ * @param {object} res - The response object.
+ */
+exports.postComment = async (req, res) => {
+  const { id: recipeId } = req.params;
+  const userId = req.user.userId; // From authentication middleware
+  const { text, parent_comment_id } = req.body;
+
+  if (!text || text.trim() === "") {
+    return res.status(400).json({ message: "Comment text cannot be empty." });
+  }
+
+  try {
+    // Check if recipe exists
+    const recipeExists = await knex("recipes").where({ id: recipeId }).first();
+    if (!recipeExists) {
+      return res.status(404).json({ message: "Recipe not found." });
+    }
+
+    // If it's a reply, check if the parent comment exists
+    if (parent_comment_id) {
+      const parentCommentExists = await knex("comments")
+        .where({ id: parent_comment_id, recipe_id: recipeId })
+        .first();
+      if (!parentCommentExists) {
+        return res
+          .status(404)
+          .json({ message: "Parent comment not found for this recipe." });
+      }
+    }
+
+    // Insert the new comment
+    const [newComment] = await knex("comments")
+      .insert({
+        user_id: userId,
+        recipe_id: recipeId,
+        text,
+        parent_comment_id: parent_comment_id || null, // Will be null for top-level comments
+      })
+      .returning("*");
+
+    // Fetch the username for the newly created comment to send back to frontend
+    const user = await knex("users")
+      .select("username")
+      .where({ id: userId })
+      .first();
+
+    res.status(201).json({
+      message: "Comment posted successfully!",
+      comment: {
+        ...newComment,
+        username: user ? user.username : "Unknown User",
+      },
+    });
+  } catch (error) {
+    console.error("Error posting comment:", error.message);
+    res
+      .status(500)
+      .json({ message: "Server error posting comment.", error: error.message });
   }
 };

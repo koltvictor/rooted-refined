@@ -449,3 +449,66 @@
     background-color: #fff !important;
   }
 }
+
+/* Comment Section Styles */
+.single-recipe-comment-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.single-recipe-comment-item {
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  background-color: var(
+    --color-background-light
+  ); /* Lighter background for comments */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); /* Subtle shadow */
+}
+
+.single-recipe-comment-header {
+  font-size: 0.9em;
+  color: var(--color-text-light); /* Lighter text for header */
+  margin-bottom: var(--spacing-sm);
+}
+
+.single-recipe-comment-text {
+  font-size: 1em;
+  color: var(--color-text-medium);
+  line-height: 1.4;
+}
+
+/* Threaded Replies Styling */
+.single-recipe-comment-replies {
+  list-style-type: none;
+  padding-left: var(--spacing-xl); /* Indent replies */
+  margin-top: var(--spacing-md);
+}
+
+/* Add Comment Input Styles */
+.single-recipe-comment-input {
+  width: 100%;
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-md);
+  font-size: 1em;
+  color: var(--color-text-medium);
+  resize: vertical; /* Allow vertical resizing */
+}
+
+.single-recipe-comment-button {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: var(--border-radius-lg);
+  background-color: var(--color-secondary);
+  color: var(--color-text-white);
+  font-size: 1em;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.single-recipe-comment-button:hover {
+  background-color: #a75c36; /* Darker hover color */
+}

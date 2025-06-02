@@ -22,6 +22,7 @@ interface Comment {
   username: string;
   text: string;
   created_at: string;
+  created_at_formatted?: string;
   updated_at: string;
   replies?: Comment[]; // For nested comments
 }
@@ -47,6 +48,69 @@ interface SingleRecipe {
   comments: Comment[]; // Add comments array to the recipe type
 }
 
+// --- CommentItem Component Definition (REMAINS THE SAME) ---
+const CommentItem: React.FC<{ comment: Comment }> = ({ comment }) => {
+  // Now formatCommentDateTime will be defined within SingleRecipePage
+  // and passed down, or you can redefine a local version if you prefer
+  // to keep it self-contained in CommentItem, but then handlePostComment
+  // needs access to a different format function.
+
+  // Let's make formatCommentDateTime *also* a prop for consistency
+  // with the problem solution. This is actually a cleaner way to pass utilities.
+  // We'll update the prop definition below.
+
+  // TEMPORARILY: We will remove formatCommentDateTime and formatDate from here,
+  // and pass them as props if CommentItem needs them, or define them in SingleRecipePage.
+  // For simplicity, let's move formatDate into SingleRecipePage,
+  // and CommentItem will receive it as a prop.
+  // For the immediate fix, we'll assume `formatDate` is passed down.
+  // Let's refine the type for CommentItem.
+  return (
+    <li key={comment.id} className="single-recipe-comment-item">
+      <div className="single-recipe-comment-header">
+        {/* We need to use comment.created_at_formatted here */}
+        <strong>{comment.username}</strong> -{" "}
+        {comment.created_at_formatted ||
+          new Date(comment.created_at).toLocaleDateString()}
+      </div>
+      <p className="single-recipe-comment-text">{comment.text}</p>
+      {comment.replies && comment.replies.length > 0 && (
+        <ul className="single-recipe-comment-replies">
+          {comment.replies.map((reply) => (
+            // Ensure key prop is here for replies as well
+            <CommentItem key={reply.id} comment={reply} />
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+};
+
+// --- Updated CommentItem type definition for clarity if passing down format function ---
+// interface CommentItemProps {
+//   comment: Comment;
+//   formatDate: (date: Date) => string; // Pass the format function as a prop
+// }
+// const CommentItem: React.FC<CommentItemProps> = ({ comment, formatDate }) => {
+//   return (
+//     <li key={comment.id} className="single-recipe-comment-item">
+//       <div className="single-recipe-comment-header">
+//         <strong>{comment.username}</strong> -{" "}
+//         {formatDate(new Date(comment.created_at))} {/* Use the passed format function */}
+//       </div>
+//       <p className="single-recipe-comment-text">{comment.text}</p>
+//       {comment.replies && comment.replies.length > 0 && (
+//         <ul className="single-recipe-comment-replies">
+//           {comment.replies.map((reply) => (
+//             <CommentItem key={reply.id} comment={reply} formatDate={formatDate} /> // Pass it recursively
+//           ))}
+//         </ul>
+//       )}
+//     </li>
+//   );
+// };
+// --- END Updated CommentItem type definition ---
+
 const SingleRecipePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -65,6 +129,42 @@ const SingleRecipePage: React.FC = () => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
 
+  // --- START: Moved formatDate helper function ---
+  const formatDate = (date: Date) => {
+    if (isNaN(date.getTime())) {
+      console.warn("Invalid date object passed to formatDate:", date);
+      return "Invalid Date";
+    }
+    return date.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short", // e.g., Jun
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true, // For AM/PM format
+    });
+  };
+
+  const formatCommentDateTime = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        console.warn("Invalid date string, attempting to parse:", dateString);
+        const parsedDate = new Date(Date.parse(dateString));
+        if (isNaN(parsedDate.getTime())) {
+          console.error("Could not parse date:", dateString);
+          return "Invalid Date";
+        }
+        return formatDate(parsedDate);
+      }
+      return formatDate(date);
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "Invalid Date";
+    }
+  };
+  // --- END: Moved formatDate helper function ---
+
   useEffect(() => {
     const fetchRecipe = async () => {
       if (!id) {
@@ -77,8 +177,16 @@ const SingleRecipePage: React.FC = () => {
         const recipeData = response.data;
 
         // Populate comments from the fetched recipe data
+        // Ensure comments are formatted before setting state
+        const formattedComments = (recipeData.comments || []).map(
+          (comment: Comment) => ({
+            ...comment,
+            created_at_formatted: formatCommentDateTime(comment.created_at), // Use the new function
+          })
+        );
+
         setRecipe(recipeData);
-        setComments(recipeData.comments || []); // Initialize comments from the API response
+        setComments(formattedComments); // Use the formatted comments
         setIsFavorited(
           location.state?.isFavorited || recipeData.isFavorited || false
         );
@@ -98,7 +206,7 @@ const SingleRecipePage: React.FC = () => {
     };
 
     fetchRecipe();
-  }, [id, location.state?.isFavorited]);
+  }, [id, location.state?.isFavorited]); // Added formatCommentDateTime to dependency array if you redefine it outside of SingleRecipePage
 
   const canEditDelete =
     recipe && user && (user.id === recipe.user_id || user.is_admin);
@@ -268,10 +376,10 @@ const SingleRecipePage: React.FC = () => {
         .catch((error) => console.log("Error sharing", error));
     } else {
       // Fallback for browsers that don't support the Web Share API
-      const emailBody = `<span class="math-inline">{shareText}\\n\\n</span>{shareUrl}`;
-      window.location.href = `mailto:?subject=<span class="math-inline">{encodeURIComponent(
-"Check out this recipe!"
-)}&body=</span>{encodeURIComponent(emailBody)}`;
+      const emailBody = `${shareText}\n\n${shareUrl}`; // Fixed string literal for emailBody
+      window.location.href = `mailto:?subject=${encodeURIComponent(
+        "Check out this recipe!"
+      )}&body=${encodeURIComponent(emailBody)}`;
     }
   };
 
@@ -292,11 +400,18 @@ const SingleRecipePage: React.FC = () => {
         text: newComment,
       });
 
-      // Assuming the API returns the newly created comment
-      const newCommentData: Comment = response.data;
+      // Assuming the API returns the newly created comment, which includes 'created_at' and 'username'
+      const newCommentData: Comment = response.data.comment; // Backend returns { message, comment }
+
+      // Format the created_at date *before* adding it to the state
+      // Use formatCommentDateTime, which includes error handling and specific formatting
+      const formattedComment = {
+        ...newCommentData,
+        created_at_formatted: formatCommentDateTime(newCommentData.created_at),
+      };
 
       // Update the state to include the new comment
-      setComments([...comments, newCommentData]);
+      setComments([formattedComment, ...comments]); // Add the new comment to the beginning
 
       // Clear the input field
       setNewComment("");
@@ -387,48 +502,6 @@ const SingleRecipePage: React.FC = () => {
         {parseInstructions(recipe.instructions)}
       </div>
 
-      {/* Comment Section */}
-      <div className="single-recipe-section">
-        <h2 className="single-recipe-section-header comment-header">
-          Comments
-        </h2>
-
-        {/* Display existing comments */}
-        {comments.length > 0 ? (
-          <ul className="single-recipe-comment-list">
-            {comments.map((comment) => (
-              <li key={comment.id} className="single-recipe-comment-item">
-                <div className="single-recipe-comment-header">
-                  <strong>{comment.username}</strong> -{" "}
-                  {new Date(comment.created_at).toLocaleDateString()}
-                </div>
-                <p className="single-recipe-comment-text">{comment.text}</p>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>No comments yet.</p>
-        )}
-
-        {/* Add new comment input */}
-        {user && (
-          <div className="single-recipe-add-comment">
-            <textarea
-              className="single-recipe-comment-input"
-              placeholder="Add a comment..."
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-            />
-            <button
-              onClick={handlePostComment}
-              className="single-recipe-action-button single-recipe-comment-button"
-            >
-              Post Comment
-            </button>
-          </div>
-        )}
-      </div>
-
       {/* Action Buttons */}
       <div className="single-recipe-action-buttons">
         {canEditDelete && (
@@ -460,6 +533,41 @@ const SingleRecipePage: React.FC = () => {
         >
           🔗 Share
         </button>
+      </div>
+      {/* Comment Section */}
+      <div className="single-recipe-section">
+        <h2 className="single-recipe-section-header comment-header">
+          Comments
+        </h2>
+
+        {/* Display existing comments */}
+        {comments.length > 0 ? (
+          <ul className="single-recipe-comment-list">
+            {comments.map((comment) => (
+              <CommentItem key={comment.id} comment={comment} />
+            ))}
+          </ul>
+        ) : (
+          <p>No comments yet.</p>
+        )}
+
+        {/* Add new comment input */}
+        {user && (
+          <div className="single-recipe-add-comment">
+            <textarea
+              className="single-recipe-comment-input"
+              placeholder="Add a comment..."
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+            />
+            <button
+              onClick={handlePostComment}
+              className="single-recipe-action-button single-recipe-comment-button"
+            >
+              Post Comment
+            </button>
+          </div>
+        )}
       </div>
       <Link to="/recipes" className="single-recipe-back-button">
         ← Back to All Recipes
