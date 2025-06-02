@@ -145,3 +145,9 @@
     gap: var(--spacing-md); /* Reduce gap further on very small screens */
   }
 }
+
+@media print {
+  .navbar {
+    display: none !important; /* Hide navbar in print */
+  }
+}

@@ -253,6 +253,28 @@ const SingleRecipePage: React.FC = () => {
     ));
   };
 
+  const handleShare = () => {
+    const shareUrl = window.location.href; // Or construct a specific URL
+    const shareText = `Check out this recipe: ${recipe?.title}`;
+
+    if (navigator.share) {
+      navigator
+        .share({
+          title: recipe?.title,
+          text: shareText,
+          url: shareUrl,
+        })
+        .then(() => console.log("Shared successfully."))
+        .catch((error) => console.log("Error sharing", error));
+    } else {
+      // Fallback for browsers that don't support the Web Share API
+      const emailBody = `<span class="math-inline">{shareText}\\n\\n</span>{shareUrl}`;
+      window.location.href = `mailto:?subject=<span class="math-inline">{encodeURIComponent(
+"Check out this recipe!"
+)}&body=</span>{encodeURIComponent(emailBody)}`;
+    }
+  };
+
   // Function to handle posting a new comment
   const handlePostComment = async () => {
     if (!user) {
@@ -367,7 +389,9 @@ const SingleRecipePage: React.FC = () => {
 
       {/* Comment Section */}
       <div className="single-recipe-section">
-        <h2 className="single-recipe-section-header">Comments</h2>
+        <h2 className="single-recipe-section-header comment-header">
+          Comments
+        </h2>
 
         {/* Display existing comments */}
         {comments.length > 0 ? (
@@ -424,10 +448,16 @@ const SingleRecipePage: React.FC = () => {
         >
           {isFavorited ? "❤️ Favorited!" : "🤍 Like"}
         </button>
-        <button className="single-recipe-action-button single-recipe-print-button">
+        <button
+          onClick={() => window.print()}
+          className="single-recipe-action-button single-recipe-print-button"
+        >
           🖨️ Print
         </button>
-        <button className="single-recipe-action-button single-recipe-share-button">
+        <button
+          className="single-recipe-action-button single-recipe-share-button"
+          onClick={handleShare}
+        >
           🔗 Share
         </button>
       </div>

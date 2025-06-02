@@ -379,3 +379,73 @@
   margin-bottom: var(--spacing-sm); /* Space between individual steps */
   line-height: 1.5; /* Good line height for readability */
 }
+
+/* Styles specifically for printing */
+@media print {
+  /* Ensure the main container takes full width and has no margins/padding */
+  .single-recipe-container {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Hide elements not needed for printing */
+  .single-recipe-video-container,
+  .single-recipe-action-buttons,
+  .single-recipe-back-button,
+  .single-recipe-add-comment,
+  .single-recipe-comment-list,
+  .recipe-rating-section,
+  .comment-header, /* Assuming you added this from our previous discussion */
+  .app-navbar {
+    /* <--- ADD THIS LINE with your navbar's class/ID */
+    display: none !important;
+  }
+
+  /* Ensure images fit within the print area */
+  .single-recipe-image {
+    max-width: 50%;
+    height: auto;
+    display: block; /* Ensures image is on its own line */
+    margin: 0 auto 20px auto; /* Center image and add some bottom margin */
+  }
+
+  /* Adjust header and text styles for readability on print */
+  .single-recipe-header {
+    font-size: 24pt; /* Larger for print */
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .single-recipe-author,
+  .single-recipe-description,
+  .single-recipe-detail-item,
+  .single-recipe-section-header,
+  .single-recipe-ingredient-list,
+  .single-recipe-instructions-list li {
+    font-size: 12pt; /* Standard print font size */
+    line-height: 1.5;
+    color: #000; /* Ensure black text for printing */
+  }
+
+  .single-recipe-section {
+    margin-bottom: 20px; /* Spacing between sections */
+  }
+
+  .single-recipe-section-header {
+    font-size: 16pt; /* Slightly larger section headers */
+    margin-top: 20px;
+    margin-bottom: 10px;
+  }
+
+  .single-recipe-ingredient-item,
+  .single-recipe-instruction-step {
+    padding: 2px 0;
+    margin-left: 20px; /* Indent lists */
+  }
+
+  /* Ensure backgrounds are transparent for less ink usage */
+  body {
+    background-color: #fff !important;
+  }
+}
