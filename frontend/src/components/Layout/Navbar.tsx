@@ -8,6 +8,9 @@ import "./NavBar.css";
 const NavBar: React.FC = () => {
   const { user, logout } = useAuth();
 
+  console.log("User:", user);
+  console.log("Is Admin:", user?.is_admin); // Use optional chaining
+
   return (
     <nav className="navbar">
       <div className="navbar-brand">

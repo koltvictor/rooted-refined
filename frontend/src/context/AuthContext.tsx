@@ -9,12 +9,20 @@ import React, {
   useCallback,
 } from "react";
 import api, { setupApiInterceptors } from "../api/api"; // Import both the instance and the setup function
-import type { User, BasicUser } from "../types/index";
+import type { User } from "../types/index"; // Only import User now, BasicUser is implied by the User type
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (newToken: string, basicUser: BasicUser) => Promise<void>;
+  login: (
+    newToken: string,
+    basicUser: {
+      id: number;
+      username: string;
+      email: string;
+      is_admin?: boolean;
+    }
+  ) => Promise<void>; // BasicUser type can be defined inline or kept
   logout: () => void;
   isLoading: boolean;
   refreshUserProfile: () => Promise<void>;
@@ -37,57 +45,68 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null);
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    // If you want to force a redirect to login on logout, do it here.
-    // For example:
-    // window.location.href = '/login'; // This forces a full page reload and clears React state
-    // Or, if using react-router-dom's navigate, you'd need access to it here,
-    // which is often handled by a wrapper component or a global navigation utility.
   }, []);
 
   const fetchAndSetUserProfile = useCallback(async () => {
     try {
+      // This is where the full user profile including `is_admin` is fetched
       const response = await api.get<User>("/users/profile");
       const fullUser: User = response.data;
       setUser(fullUser);
-      localStorage.setItem("user", JSON.stringify(fullUser));
+      localStorage.setItem("user", JSON.stringify(fullUser)); // Store the *full* user object
     } catch (error) {
       console.error("Failed to fetch full user profile:", error);
-      // The interceptor might have already called logout for 401.
-      // If it's another error, we might still want to logout.
-      // For robustness, ensure `logout` can be safely called multiple times.
-      // (Our `logout` function already is).
-      // logout(); // Only if this error is specifically an auth error not caught by interceptor
+      // If fetching profile fails (e.g., token expired/invalid), log out
+      logout();
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [logout]); // Added logout to dependency array as it's used within useCallback
 
   // IMPORTANT: Set up Axios interceptors here once on mount.
   useEffect(() => {
     console.log("Setting up API interceptors...");
     setupApiInterceptors(logout);
-    // This effect should only run once to set up interceptors for the entire app lifecycle.
-    // The `logout` dependency is stable due to useCallback.
   }, [logout]);
 
   // On initial load, try to retrieve token and user from localStorage
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
-    const storedUserStr = localStorage.getItem("user");
+    // Removed storedUserStr as we will rely on fetchAndSetUserProfile for the full user object
+    // const storedUserStr = localStorage.getItem("user"); // Removed this line
 
-    if (storedToken && storedUserStr) {
+    if (storedToken) {
+      // Only check for token
       setToken(storedToken);
-      fetchAndSetUserProfile();
+      fetchAndSetUserProfile(); // Always fetch the full profile if a token exists
     } else {
       setIsLoading(false);
     }
-  }, [fetchAndSetUserProfile]);
+  }, [fetchAndSetUserProfile]); // Added fetchAndSetUserProfile to dependency array
 
-  const login = async (newToken: string, basicUser: BasicUser) => {
+  // MODIFIED LOGIN FUNCTION
+  const login = async (
+    newToken: string,
+    initialUserData: {
+      id: number;
+      username: string;
+      email: string;
+      is_admin?: boolean;
+    }
+  ) => {
     setToken(newToken);
     localStorage.setItem("token", newToken);
-    localStorage.setItem("user", JSON.stringify(basicUser));
-    await fetchAndSetUserProfile();
+    // DO NOT set localStorage.setItem("user", JSON.stringify(initialUserData)); here
+    // Instead, rely solely on fetchAndSetUserProfile to get the complete user object
+    // and store it in localStorage.
+    // This prevents storing an incomplete user object from the initial login response.
+
+    // Immediately set a 'loading' or 'basic' user if you want,
+    // but the true source of truth will come from the profile fetch.
+    setUser(initialUserData as User); // Temporarily set basic data to show user is logged in
+    // This might not have `is_admin` yet.
+
+    await fetchAndSetUserProfile(); // This call will fetch the full user and update the state
   };
 
   const value = {

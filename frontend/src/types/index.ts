@@ -56,13 +56,6 @@ export interface Recipe {
   cooking_method_ids: number[];
   main_ingredient_ids: number[];
   occasion_ids: number[];
-
-  // Full objects for displaying (if fetched hydrated)
-  // These would usually be fetched separately or populated in a detailed view
-  // category?: FilterOption;
-  // cuisine?: FilterOption;
-  // dietary_restrictions?: FilterOption[];
-  // ... and so on for other filters
 }
 
 // --- User Related Types ---
@@ -81,7 +74,20 @@ export interface BasicUser {
   id: number;
   username: string;
   email: string;
+  is_admin: boolean;
   // Add other basic properties received upon login, if any
+}
+
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  bio: string | null;
+  profile_picture_url: string | null;
+  dietary_restrictions?: FilterOption[];
+  is_admin: boolean; // Add is_admin property
 }
 
 // --- Filter Overlay Related Types ---

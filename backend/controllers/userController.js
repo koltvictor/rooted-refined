@@ -30,7 +30,8 @@ exports.getUserProfile = async (req, res) => {
         "first_name",
         "last_name",
         "bio",
-        "profile_picture_url"
+        "profile_picture_url",
+        "is_admin"
       ) // Add any other profile fields you have or plan to add
       .where({ id: userId })
       .first();
