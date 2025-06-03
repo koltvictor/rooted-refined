@@ -38,6 +38,10 @@ const NavBar: React.FC = () => {
               <Link to="/my-favorites">My Favorites</Link>
             </li>
             <li>
+              {" "}
+              <Link to="/resources-hub">Resources Hub</Link>{" "}
+            </li>
+            <li>
               <Link to="/profile">Profile</Link>
             </li>
           </>

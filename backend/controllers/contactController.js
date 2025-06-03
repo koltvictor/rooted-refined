@@ -1,15 +1,5 @@
 // backend/controllers/contactController.js
-
-// You'll need to install a package like nodemailer to send emails
-// npm install nodemailer
 const nodemailer = require("nodemailer");
-
-// You'll need to define your email credentials in your .env file
-// Example .env variables:
-// EMAIL_SERVICE=gmail
-// EMAIL_USER=your_email@example.com
-// EMAIL_PASS=your_email_password_or_app_password
-// ADMIN_EMAIL=admin@example.com (where you want to receive messages)
 
 /**
  * @desc Submit a contact form message
@@ -39,17 +29,17 @@ exports.submitMessage = async (req, res) => {
   try {
     // 1. Configure nodemailer transporter
     const transporter = nodemailer.createTransport({
-      service: process.env.EMAIL_SERVICE, // e.g., 'gmail', 'SendGrid', 'Outlook365'
+      service: process.env.EMAIL_SERVICE,
       auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS, // Use an app-specific password if using Gmail
+        pass: process.env.EMAIL_PASS,
       },
     });
 
     // 2. Define email options
     const mailOptions = {
-      from: process.env.EMAIL_USER, // Your sender email
-      to: process.env.ADMIN_EMAIL, // The email address where you want to receive messages
+      from: process.env.EMAIL_USER,
+      to: process.env.ADMIN_EMAIL,
       subject: `New Contact Form Message from ${name}`,
       html: `
         <p>You have a new message from your website contact form.</p>
@@ -72,7 +62,6 @@ exports.submitMessage = async (req, res) => {
       .json({ message: "Your message has been sent successfully!" });
   } catch (error) {
     console.error("Error sending contact message:", error);
-    // Log the actual error for debugging, but send a generic message to the user
     res
       .status(500)
       .json({ message: "Failed to send message. Please try again later." });

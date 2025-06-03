@@ -6,9 +6,8 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { AuthProvider } from "./context/AuthProvider"; // Correct import for AuthProvider
-import { useAuth } from "./hooks/useAuth"; // Correct import for useAuth
-
+import { AuthProvider } from "./context/AuthProvider";
+import { useAuth } from "./hooks/useAuth";
 import Navbar from "./components/Layout/Navbar";
 import Login from "./components/Auth/Login";
 import Register from "./components/Auth/Register";
@@ -20,6 +19,7 @@ import FavoritedRecipesPage from "./pages/FavoritedRecipesPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
 import UserProfilePage from "./pages/UserProfilePage";
+import ResourcesPage from "./pages/ResourcesPage";
 
 // PrivateRoute component (remains the same)
 interface PrivateRouteProps {
@@ -61,6 +61,7 @@ const App: React.FC = () => {
             <Route path="/register" element={<Register />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/contact" element={<ContactPage />} />
+            <Route path="/resources-hub" element={<ResourcesPage />} />
             <Route
               path="/profile"
               element={
@@ -86,14 +87,31 @@ const App: React.FC = () => {
                 </PrivateRoute>
               }
             />
+            {/* CORRECTED AND CONSOLIDATED FAVORITES ROUTE: */}
             <Route
-              path="/my-favorites"
+              path="/my-favorites" // Ensure this matches your Navbar link
               element={
                 <PrivateRoute>
-                  <FavoritedRecipesPage />
+                  <FavoritedRecipesPage /> {/* <--- CORRECTED COMPONENT NAME */}
                 </PrivateRoute>
               }
             />
+            {/* <Route
+              path="/pantry"
+              element={
+                <PrivateRoute>
+                  <PantryPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/shopping-list"
+              element={
+                <PrivateRoute>
+                  <ShoppingListPage />
+                </PrivateRoute>
+              }
+            /> */}
           </Routes>
         </div>
       </AuthProvider>
