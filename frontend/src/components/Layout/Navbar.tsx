@@ -26,6 +26,10 @@ const NavBar: React.FC = () => {
         <li>
           <Link to="/contact">Contact</Link>
         </li>
+        <li>
+          {" "}
+          <Link to="/resources-hub">Resources Hub</Link>{" "}
+        </li>
         {user &&
           user.is_admin && ( // Ensure only admin sees Add Recipe
             <li>
@@ -37,10 +41,7 @@ const NavBar: React.FC = () => {
             <li>
               <Link to="/my-favorites">My Favorites</Link>
             </li>
-            <li>
-              {" "}
-              <Link to="/resources-hub">Resources Hub</Link>{" "}
-            </li>
+
             <li>
               <Link to="/profile">Profile</Link>
             </li>

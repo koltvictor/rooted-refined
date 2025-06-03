@@ -1,72 +1,129 @@
 /* frontend/src/pages/AboutPage.css */
 
+/* Variables for potential color adjustments (if not already in global vars) */
+/*
+:root {
+  --color-primary-dark: #2c3e50;
+  --color-accent-gold: #f39c12;
+  --color-soft-green: #2ecc71;
+  --color-warm-beige: #fefcf3;
+  --color-text-rich: #34495e;
+}
+*/
+
 .about-container {
-  max-width: 900px; /* Optimal reading width */
-  margin: var(--spacing-xl) auto; /* Top/bottom margin, horizontally centered */
+  max-width: 900px;
+  margin: var(--spacing-xxl) auto; /* More vertical space */
   padding: var(--spacing-lg) var(--spacing-xl);
-  background-color: var(--color-background-light);
+  background-color: var(
+    --color-background-light
+  ); /* Or a slightly warmer tone like #fefcf3 */
   border-radius: var(--border-radius-lg);
-  box-shadow: 0 8px 20px var(--color-shadow-light); /* Consistent shadow with app-container */
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15); /* Slightly stronger, softer shadow */
   font-family: "Nunito", sans-serif;
-  line-height: 1.8; /* Increased line-height for readability */
-  color: var(--color-text-dark);
+  line-height: 1.8;
+  color: var(--color-text-dark); /* Richer dark text */
 }
 
 .about-header {
   text-align: center;
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: var(--spacing-xxl); /* More space below header */
   padding-bottom: var(--spacing-lg);
-  border-bottom: 1px solid var(--color-border-light); /* Subtle separator */
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .about-title {
   font-family: "Playfair Display", serif;
-  font-size: 3.5em; /* Large, impactful title */
+  font-size: 3.8em; /* Even larger, more impactful */
   font-weight: 700;
-  color: var(--color-primary); /* Primary color for main title */
+  color: var(--color-primary);
   margin-bottom: var(--spacing-sm);
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em; /* Slightly more open letter spacing */
 }
 
 .about-subtitle {
-  font-size: 1.4em;
-  color: var(--color-text-medium);
+  font-size: 1.6em; /* Larger, more prominent subtitle */
+  color: var(--color-secondary); /* Use your accent color for warmth/pop */
   font-style: italic;
   margin-top: var(--spacing-sm);
+  font-weight: 400; /* Lighter weight for elegance */
 }
 
 .about-section {
-  margin-bottom: var(--spacing-xxl); /* More space between sections */
+  margin-bottom: var(--spacing-xxl); /* Generous space between sections */
+  padding-top: var(--spacing-md); /* Small internal top padding for sections */
 }
 
 .section-title {
   font-family: "Playfair Display", serif;
-  font-size: 2.2em; /* Prominent section titles */
-  font-weight: 600;
+  font-size: 2.5em; /* More prominent section titles */
+  font-weight: 700; /* Bolder */
   color: var(--color-text-dark);
   margin-bottom: var(--spacing-lg);
   text-align: center;
-  position: relative; /* For decorative line */
+  position: relative;
+  line-height: 1.3; /* Better readability for multi-line titles */
 }
 
 .section-title::after {
   content: "";
   display: block;
-  width: 60px; /* Short decorative line */
-  height: 2px;
-  background-color: var(--color-secondary); /* Accent color for the line */
-  margin: var(--spacing-sm) auto 0; /* Centered below title */
+  width: 80px; /* Longer decorative line */
+  height: 3px; /* Thicker line */
+  background-color: var(--color-secondary);
+  margin: var(--spacing-md) auto 0; /* More space below title for the line */
+  border-radius: 2px;
 }
 
 .about-section p {
-  font-size: 1.15em; /* Comfortable reading size */
+  font-size: 1.15em;
   margin-bottom: var(--spacing-md);
   color: var(--color-text-medium);
-  text-align: justify; /* Justified text for a clean block */
+  text-align: justify; /* Keep justified for desktop for clean blocks */
+  padding: 0 var(--spacing-sm); /* Small horizontal padding for a slightly indented look */
+}
+
+.about-section p:first-of-type {
+  margin-top: var(
+    --spacing-lg
+  ); /* Add a little space after section title and first paragraph */
+}
+
+.about-section p strong {
+  color: var(--color-primary); /* Make bold text pop with your primary color */
+  font-weight: 700;
 }
 
 .about-section p:last-child {
-  margin-bottom: 0; /* No margin below last paragraph in section */
+  margin-bottom: 0;
+}
+
+.final-thought {
+  font-style: italic;
+  text-align: center;
+  margin-top: var(--spacing-xl);
+  font-size: 1.25em;
+  color: var(
+    --color-accent-gold
+  ); /* A warm accent color for the closing thought */
+  font-family: "Playfair Display", serif; /* Use display font for emphasis */
+}
+
+.about-photo-wrapper {
+  text-align: center;
+  margin-bottom: var(--spacing-xxl); /* More space below the photo */
+  padding-bottom: var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.about-photo {
+  width: 220px; /* Slightly larger photo */
+  height: 220px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 5px solid var(--color-primary); /* Thicker border */
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2); /* Stronger, more defined shadow */
+  display: inline-block;
 }
 
 /* Responsive adjustments */
@@ -81,16 +138,27 @@
   }
 
   .about-subtitle {
-    font-size: 1.2em;
+    font-size: 1.4em;
   }
 
   .section-title {
-    font-size: 1.8em;
+    font-size: 2em;
   }
 
   .about-section p {
-    font-size: 1em;
+    font-size: 1.05em;
     text-align: left; /* No justify on smaller screens for better flow */
+    padding: 0; /* Remove horizontal padding on small screens */
+  }
+
+  .final-thought {
+    font-size: 1.1em;
+  }
+
+  .about-photo {
+    width: 180px;
+    height: 180px;
+    border-width: 4px;
   }
 }
 
@@ -102,51 +170,20 @@
     font-size: 2.2em;
   }
   .about-subtitle {
-    font-size: 1em;
+    font-size: 1.2em;
   }
   .section-title {
-    font-size: 1.5em;
+    font-size: 1.7em;
   }
-}
-
-/* frontend/src/pages/AboutPage.css */
-
-/* ... (rest of the existing AboutPage.css) ... */
-
-.about-photo-wrapper {
-  text-align: center; /* Center the image */
-  margin-bottom: var(--spacing-xl); /* Space below the photo */
-  padding-bottom: var(
-    --spacing-lg
-  ); /* Add padding below photo before first text section */
-  border-bottom: 1px solid var(--color-border-light); /* Subtle separator below photo */
-}
-
-.about-photo {
-  width: 200px; /* Adjust size as needed */
-  height: 200px; /* Ensure it's a perfect circle */
-  object-fit: cover; /* Crop if necessary to fit circle */
-  border-radius: 50%; /* Makes the image circular */
-  border: 4px solid var(--color-primary); /* A subtle border in your primary color */
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15); /* Soft shadow for depth */
-  display: inline-block; /* To allow auto margins if parent isn't flex, and centering */
-}
-
-/* Responsive adjustments for photo */
-@media (max-width: 768px) {
+  .about-section p {
+    font-size: 0.95em;
+  }
+  .final-thought {
+    font-size: 1em;
+  }
   .about-photo {
-    width: 160px;
-    height: 160px;
+    width: 140px;
+    height: 140px;
     border-width: 3px;
   }
 }
-
-@media (max-width: 480px) {
-  .about-photo {
-    width: 120px;
-    height: 120px;
-    border-width: 2px;
-  }
-}
-
-/* ... (rest of the existing AboutPage.css) ... */
