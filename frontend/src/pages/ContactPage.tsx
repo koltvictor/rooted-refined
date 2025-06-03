@@ -1,7 +1,10 @@
 // frontend/src/pages/ContactPage.tsx
 
 import React, { useState } from "react";
-import "./ContactPage.css"; // We'll create this CSS next
+import "./ContactPage.css";
+import api from "../api/api"; // Import your API client
+import axios, { AxiosError } from "axios"; // Import axios and AxiosError
+import type { BackendErrorResponse } from "../types/index.ts"; // Assuming you have this type for backend errors
 
 const ContactPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -26,49 +29,57 @@ const ContactPage: React.FC = () => {
     setStatus("submitting");
     setMessage("");
 
-    // Basic validation
+    // Basic validation (keep frontend validation)
     if (!formData.name || !formData.email || !formData.message) {
       setStatus("error");
       setMessage("Please fill in all fields.");
       return;
     }
-
-    // Basic email format validation
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       setStatus("error");
       setMessage("Please enter a valid email address.");
       return;
     }
 
-    // --- IMPORTANT: This is where you would send data to a backend endpoint ---
-    // For now, we'll just simulate a successful submission.
-    console.log("Contact form submitted:", formData);
-
     try {
-      // In a real application, you'd send formData to your backend here:
-      // const response = await api.post('/api/contact', formData);
-      // if (response.status === 200) {
-      //   setStatus('success');
-      //   setMessage('Your message has been sent successfully!');
-      //   setFormData({ name: '', email: '', message: '' }); // Clear form
-      // } else {
-      //   // Handle non-200 responses
-      //   setStatus('error');
-      //   setMessage(response.data.message || 'Failed to send message. Please try again.');
-      // }
+      const response = await api.post("/contact", formData);
 
-      // Simulate success after a short delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setStatus("success");
-      setMessage("Your message has been sent successfully!");
-      setFormData({ name: "", email: "", message: "" }); // Clear form
-    } catch (error: any) {
+      if (response.status === 200) {
+        setStatus("success");
+        setMessage(
+          response.data.message || "Your message has been sent successfully!"
+        );
+        setFormData({ name: "", email: "", message: "" }); // Clear form
+      } else {
+        // Axios typically throws for non-2xx status codes, so this else block might not be hit
+        // but it's fine to keep as a fallback.
+        setStatus("error");
+        setMessage(
+          response.data.message || "Failed to send message. Please try again."
+        );
+      }
+    } catch (error: unknown) {
+      // Changed 'any' to 'unknown'
       console.error("Error submitting contact form:", error);
-      setStatus("error");
-      setMessage(
-        error.response?.data?.message ||
-          "Failed to send message. Please try again."
-      );
+
+      if (axios.isAxiosError<BackendErrorResponse>(error)) {
+        // It's an Axios error, and we expect a BackendErrorResponse structure
+        setStatus("error");
+        setMessage(
+          error.response?.data?.message ||
+            "Failed to send message. Please try again."
+        );
+      } else if (error instanceof Error) {
+        // It's a general JavaScript Error object
+        setStatus("error");
+        setMessage(
+          error.message || "Failed to send message. Please try again."
+        );
+      } else {
+        // Handle any other unknown error types
+        setStatus("error");
+        setMessage(`An unknown error occurred: ${String(error)}`);
+      }
     }
   };
 

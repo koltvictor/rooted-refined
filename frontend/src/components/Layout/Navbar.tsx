@@ -14,7 +14,7 @@ const NavBar: React.FC = () => {
   return (
     <nav className="navbar">
       <div className="navbar-brand">
-        <Link to="/">Kolt's Green Table</Link>
+        <Link to="/">Kolt's Table</Link>
       </div>
       <ul className="navbar-links">
         <li>

@@ -8,7 +8,7 @@ const AboutPage: React.FC = () => {
   return (
     <div className="about-container">
       <header className="about-header">
-        <h1 className="about-title">About Kolt's Green Table</h1>
+        <h1 className="about-title">About Kolt's Table</h1>
       </header>
 
       <div className="about-photo-wrapper">
@@ -21,11 +21,11 @@ const AboutPage: React.FC = () => {
 
       <section className="about-section about-intro">
         <p>
-          Welcome to Kolt's Green Table, a place where culinary artistry meets
-          the pure, vibrant essence of nature. My journey into the kitchen began
-          in childhood, not just as a pastime, but as a fascinating dance
-          between art and chemistry. It was truly enchanting to discover how
-          simple ingredients could transform—not only into something stunningly
+          Welcome to Kolt's Table, a place where culinary artistry meets the
+          pure, vibrant essence of nature. My journey into the kitchen began in
+          childhood, not just as a pastime, but as a fascinating dance between
+          art and chemistry. It was truly enchanting to discover how simple
+          ingredients could transform—not only into something stunningly
           delicious and beautiful, but also profoundly nourishing. This early
           spark ignited a lifelong passion, not just for cooking, but for the
           immense joy found in sharing unforgettable meals.
