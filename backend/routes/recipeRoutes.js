@@ -26,4 +26,11 @@ router.post("/:id/rate", protect, recipeController.submitRecipeRating);
 
 router.post("/:id/comments", protect, recipeController.postComment);
 
+router.delete(
+  "/comments/:id",
+  protect,
+  authorizeAdmin,
+  recipeController.deleteComment
+);
+
 module.exports = router;

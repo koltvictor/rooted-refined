@@ -1,13 +1,13 @@
 // frontend/src/pages/SingleRecipePage.tsx
 
-import React, { useState, useEffect, useCallback } from "react"; // Import useCallback
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import api from "../api/api";
 import { useAuth } from "../hooks/useAuth";
 import "./SingleRecipePage.css";
 import StarRating from "../components/StarRating/StarRating";
-import axios from "axios"; // Import axios and AxiosError
-import type { BackendErrorResponse } from "../types/index.ts"; // Assuming BackendErrorResponse is in types/index.ts
+import axios, { AxiosError } from "axios";
+import type { BackendErrorResponse } from "../types/index.ts";
 
 // Define a type for a single recipe with ingredients (matching backend response)
 interface Ingredient {
@@ -27,7 +27,7 @@ interface Comment {
   created_at_formatted?: string;
   updated_at: string;
   replies?: Comment[]; // For nested comments
-  parent_comment_id?: number | null; // Add this to your interface
+  parent_comment_id?: number | null;
 }
 
 interface SingleRecipe {
@@ -51,21 +51,41 @@ interface SingleRecipe {
   comments: Comment[];
 }
 
+// Helper to recursively add created_at_formatted to comments in a tree
+const addFormattedDatesToCommentTree = (
+  commentsArray: Comment[],
+  formatDateTime: (dateString: string) => string
+): Comment[] => {
+  if (!commentsArray) return [];
+  return commentsArray.map((comment) => ({
+    ...comment,
+    created_at_formatted: formatDateTime(comment.created_at),
+    replies:
+      comment.replies && comment.replies.length > 0
+        ? addFormattedDatesToCommentTree(comment.replies, formatDateTime)
+        : undefined,
+  }));
+};
+
 // --- CommentItem Component Definition ---
-// Update CommentItem props to include onReplySubmit and current user info
+// Update CommentItem props to include onReplySubmit, onCommentDelete and current user info
 interface CommentItemProps {
   comment: Comment;
   onReplySubmit: (text: string, parentCommentId: number) => Promise<void>;
+  onCommentDelete: (commentId: number) => Promise<void>; // <<< NEW PROP
   currentUserId: number | null;
   currentUsername: string | null;
+  isAdmin: boolean; // <<< NEW PROP (Pass user.is_admin from parent)
   formatCommentDateTime: (dateString: string) => string;
 }
 
 const CommentItem: React.FC<CommentItemProps> = ({
   comment,
   onReplySubmit,
+  onCommentDelete, // Destructure new prop
   currentUserId,
   currentUsername,
+  isAdmin, // Destructure new prop
   formatCommentDateTime,
 }) => {
   const [showReplyForm, setShowReplyForm] = useState(false);
@@ -90,11 +110,36 @@ const CommentItem: React.FC<CommentItemProps> = ({
     }
   };
 
+  const handleDeleteClick = async () => {
+    // <<< NEW: Admin delete logic
+    if (
+      window.confirm(
+        "Are you sure you want to delete this comment and all its replies?"
+      )
+    ) {
+      try {
+        await onCommentDelete(comment.id);
+      } catch (error) {
+        console.error("Failed to delete comment from UI:", error);
+        alert("Failed to delete comment."); // Basic feedback
+      }
+    }
+  };
+
   return (
     <li key={comment.id} className="single-recipe-comment-item">
       <div className="single-recipe-comment-header">
         <strong>{comment.username}</strong> -{" "}
         {formatCommentDateTime(comment.created_at)}
+        {/* NEW: Admin delete button */}
+        {isAdmin && (
+          <button
+            className="single-recipe-comment-delete-button"
+            onClick={handleDeleteClick}
+          >
+            🗑️
+          </button>
+        )}
       </div>
       <p className="single-recipe-comment-text">{comment.text}</p>
 
@@ -132,8 +177,10 @@ const CommentItem: React.FC<CommentItemProps> = ({
               key={reply.id}
               comment={reply}
               onReplySubmit={onReplySubmit}
+              onCommentDelete={onCommentDelete} // <<< PASS DOWN NEW PROP
               currentUserId={currentUserId}
               currentUsername={currentUsername}
+              isAdmin={isAdmin} // <<< PASS DOWN NEW PROP
               formatCommentDateTime={formatCommentDateTime} // Pass down formatter
             />
           ))}
@@ -141,21 +188,6 @@ const CommentItem: React.FC<CommentItemProps> = ({
       )}
     </li>
   );
-};
-
-const addFormattedDatesToCommentTree = (
-  commentsArray: Comment[],
-  formatDateTime: (dateString: string) => string
-): Comment[] => {
-  if (!commentsArray) return [];
-  return commentsArray.map((comment) => ({
-    ...comment,
-    created_at_formatted: formatDateTime(comment.created_at),
-    replies:
-      comment.replies && comment.replies.length > 0
-        ? addFormattedDatesToCommentTree(comment.replies, formatDateTime)
-        : undefined, // Ensure replies is undefined or an empty array if no replies
-  }));
 };
 
 const SingleRecipePage: React.FC = () => {
@@ -176,23 +208,20 @@ const SingleRecipePage: React.FC = () => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
 
-  const formatDate = useCallback(
-    (date: Date) => {
-      if (isNaN(date.getTime())) {
-        console.warn("Invalid date object passed to formatDate:", date);
-        return "Invalid Date";
-      }
-      return date.toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "short", // e.g., Jun
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true, // For AM/PM format
-      });
-    },
-    [] // Empty dependency array as formatDate has no external dependencies
-  );
+  const formatDate = useCallback((date: Date) => {
+    if (isNaN(date.getTime())) {
+      console.warn("Invalid date object passed to formatDate:", date);
+      return "Invalid Date";
+    }
+    return date.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short", // e.g., Jun
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true, // For AM/PM format
+    });
+  }, []);
 
   const formatCommentDateTime = useCallback(
     (dateString: string) => {
@@ -216,7 +245,8 @@ const SingleRecipePage: React.FC = () => {
     [formatDate]
   );
 
-  // Helper function to build the threaded comment tree on the frontend
+  // Helper function to build the threaded comment tree on the frontend - NO LONGER USED FOR INITIAL FETCH
+  // Keeping it for the live update via handlePostComment
   const buildCommentTree = useCallback(
     (commentsList: Comment[], parentId: number | null = null): Comment[] => {
       const tree: Comment[] = [];
@@ -225,7 +255,7 @@ const SingleRecipePage: React.FC = () => {
         .forEach((comment) => {
           tree.push({
             ...comment,
-            created_at_formatted: formatCommentDateTime(comment.created_at), // Uses formatCommentDateTime
+            created_at_formatted: formatCommentDateTime(comment.created_at),
             replies: buildCommentTree(commentsList, comment.id),
           });
         });
@@ -249,7 +279,7 @@ const SingleRecipePage: React.FC = () => {
         // Just recursively add the formatted date for display on the frontend.
         const commentsWithFormattedDates = addFormattedDatesToCommentTree(
           recipeData.comments || [],
-          formatCommentDateTime // Pass the formatCommentDateTime function
+          formatCommentDateTime
         );
 
         setRecipe(recipeData);
@@ -262,7 +292,6 @@ const SingleRecipePage: React.FC = () => {
         setUserCurrentRating(parseFloat(recipeData.current_user_rating || 0));
         setLoading(false);
       } catch (err: unknown) {
-        // Changed from 'any'
         if (axios.isAxiosError<BackendErrorResponse>(err)) {
           console.error("Error fetching recipe:", err);
           if (err.response && err.response.status === 404) {
@@ -293,23 +322,10 @@ const SingleRecipePage: React.FC = () => {
   const canEditDelete =
     recipe && user && (user.id === recipe.user_id || user.is_admin);
 
+  // Corrected getEmbedUrl function with actual YouTube/Vimeo patterns
   const getEmbedUrl = (url: string) => {
-    // YouTube standard watch URL: https://www.youtube.com/watch?v=VIDEO_ID
-    if (url.includes("youtube.com/watch?v=")) {
-      const videoId = url.split("v=")[1]?.split("&")[0];
-      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
-    }
-    // YouTube short URL: https://youtu.be/VIDEO_ID
-    if (url.includes("youtu.be/")) {
-      const videoId = url.split("youtu.be/")[1]?.split("?")[0];
-      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
-    }
-    // Vimeo URL: https://vimeo.com/VIDEO_ID
-    if (url.includes("vimeo.com/")) {
-      const videoId = url.split("/").pop(); // Gets the last part of the URL, usually the ID
-      return videoId ? `https://player.vimeo.com/video/${videoId}` : null;
-    }
-    return null;
+    const { embedUrl } = getVideoDetailsFromUrl(url);
+    return embedUrl;
   };
 
   const embedVideoSrc = recipe?.video_url
@@ -345,7 +361,6 @@ const SingleRecipePage: React.FC = () => {
       const response = await api.post(`/recipes/${recipe.id}/favorite`);
       setIsFavorited(response.data.favorited);
     } catch (error: unknown) {
-      // Changed from 'any'
       if (axios.isAxiosError<BackendErrorResponse>(error)) {
         console.error(
           "Error toggling favorite:",
@@ -386,7 +401,6 @@ const SingleRecipePage: React.FC = () => {
 
       alert(response.data.message);
     } catch (error: unknown) {
-      // Changed from 'any'
       if (axios.isAxiosError<BackendErrorResponse>(error)) {
         console.error(
           "Error submitting rating:",
@@ -417,6 +431,7 @@ const SingleRecipePage: React.FC = () => {
       const trimmedLine = line.trim();
 
       if (trimmedLine.startsWith("*")) {
+        // If a section title, push current section and start a new one
         if (currentSection.steps.length > 0 || currentSection.title) {
           sections.push(currentSection);
         }
@@ -426,10 +441,12 @@ const SingleRecipePage: React.FC = () => {
         }
         currentSection = { title: title.trim(), steps: [] };
       } else if (trimmedLine.length > 0) {
+        // Add non-empty lines as steps to the current section
         currentSection.steps.push(trimmedLine);
       }
     });
 
+    // Push the last section after the loop finishes
     if (currentSection.steps.length > 0 || currentSection.title) {
       sections.push(currentSection);
     }
@@ -443,7 +460,7 @@ const SingleRecipePage: React.FC = () => {
           <ol className="single-recipe-instructions-list">
             {section.steps.map((step, stepIndex) => (
               <li
-                key={`step-${sectionIndex}-${stepIndex}`}
+                key={`step-${sectionIndex}-${stepIndex}`} // This format IS unique
                 className="single-recipe-instruction-step"
               >
                 {step}
@@ -468,20 +485,17 @@ const SingleRecipePage: React.FC = () => {
         })
         .then(() => console.log("Shared successfully."))
         .catch((error: unknown) => {
-          // Changed from 'any'
           console.log("Error sharing", error);
-          // You could add a more user-friendly message here if desired
         });
     } else {
-      const emailBody = `${shareText}\n\n${shareUrl}`;
-      window.location.href = `mailto:?subject=${encodeURIComponent(
-        "Check out this recipe!"
-      )}&body=${encodeURIComponent(emailBody)}`;
+      const emailBody = `<span class="math-inline">\{shareText\}\\n\\n</span>{shareUrl}`;
+      window.location.href = `mailto:?subject=<span class="math-inline">\{encodeURIComponent\(
+"Check out this recipe\!"
+\)\}&body\=</span>{encodeURIComponent(emailBody)}`;
     }
   };
 
   // Function to handle posting a new comment or reply
-  // Now accepts an optional parentCommentId
   const handlePostComment = async (
     text: string,
     parentCommentId: number | null = null
@@ -508,7 +522,6 @@ const SingleRecipePage: React.FC = () => {
       );
 
       const newCommentData: Comment = response.data.comment;
-      console.log("New comment data from backend:", newCommentData);
 
       // Add username from frontend user state if not provided by backend (good fallback)
       if (!newCommentData.username && user?.username) {
@@ -534,27 +547,20 @@ const SingleRecipePage: React.FC = () => {
           // It's a reply, find its parent and insert
           return commentsArray.map((cmt) => {
             if (cmt.id === newCmt.parent_comment_id) {
-              // If this is the parent, create a NEW object for parent
-              // and ensure its replies array is also a NEW array reference
               return {
                 ...cmt,
-                replies: cmt.replies
-                  ? [...cmt.replies, newCmt] // Create new array reference for replies
-                  : [newCmt], // If no replies array, create one
+                replies: cmt.replies ? [...cmt.replies, newCmt] : [newCmt],
               };
             } else if (cmt.replies && cmt.replies.length > 0) {
-              // Recursively check children. Ensure a NEW object for cmt
-              // if any of its children are modified.
               const updatedReplies = insertCommentIntoTree(cmt.replies, newCmt);
               if (updatedReplies !== cmt.replies) {
-                // Only update if children were modified
                 return {
                   ...cmt,
                   replies: updatedReplies,
                 };
               }
             }
-            return cmt; // Return original comment if no change occurred in this branch
+            return cmt;
           });
         }
       };
@@ -569,7 +575,6 @@ const SingleRecipePage: React.FC = () => {
       }
       // For replies, the CommentItem component will clear its own input
     } catch (error: unknown) {
-      // Changed from 'any'
       if (axios.isAxiosError<BackendErrorResponse>(error)) {
         console.error("Error posting comment:", error);
         alert(
@@ -583,7 +588,52 @@ const SingleRecipePage: React.FC = () => {
         console.error("An unknown error occurred posting comment:", error);
         alert(`An unknown error occurred: ${String(error)}`);
       }
-      throw error; // Re-throw to allow CommentItem to handle error if needed
+      throw error;
+    }
+  };
+
+  // NEW: handleCommentDelete function
+  const handleCommentDelete = async (commentId: number) => {
+    try {
+      const response = await api.delete(`/recipes/comments/${commentId}`);
+      alert(response.data.message); // Show success message
+
+      // Update comments state to remove the deleted comment and its replies
+      const removeCommentFromTree = (
+        commentsArray: Comment[],
+        idToRemove: number
+      ): Comment[] => {
+        return commentsArray
+          .filter((cmt) => cmt.id !== idToRemove)
+          .map((cmt) => {
+            if (cmt.replies && cmt.replies.length > 0) {
+              return {
+                ...cmt,
+                replies: removeCommentFromTree(cmt.replies, idToRemove),
+              };
+            }
+            return cmt;
+          });
+      };
+
+      setComments((prevComments) =>
+        removeCommentFromTree(prevComments, commentId)
+      );
+    } catch (error: unknown) {
+      if (axios.isAxiosError<BackendErrorResponse>(error)) {
+        console.error(
+          "Error deleting comment:",
+          error.response?.data || error.message
+        );
+        alert(error.response?.data?.message || "Failed to delete comment.");
+      } else if (error instanceof Error) {
+        console.error("Error deleting comment:", error.message);
+        alert(error.message || "Failed to delete comment.");
+      } else {
+        console.error("An unknown error occurred deleting comment:", error);
+        alert(`An unknown error occurred: ${String(error)}`);
+      }
+      throw error;
     }
   };
 
@@ -710,10 +760,12 @@ const SingleRecipePage: React.FC = () => {
               <CommentItem
                 key={comment.id}
                 comment={comment}
-                onReplySubmit={handlePostComment} // Pass the handler
-                currentUserId={user ? user.id : null} // Pass current user ID
-                currentUsername={user ? user.username : null} // Pass current username
-                formatCommentDateTime={formatCommentDateTime} // Pass down formatter
+                onReplySubmit={handlePostComment}
+                onCommentDelete={handleCommentDelete} // <<< PASS NEW HANDLER
+                currentUserId={user ? user.id : null}
+                currentUsername={user ? user.username : null}
+                isAdmin={user?.is_admin || false} // <<< PASS ADMIN STATUS
+                formatCommentDateTime={formatCommentDateTime}
               />
             ))}
           </ul>

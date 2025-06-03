@@ -860,3 +860,45 @@ exports.postComment = async (req, res) => {
       .json({ message: "Server error posting comment.", error: error.message });
   }
 };
+
+/**
+ * @desc Delete a comment or reply
+ * @route DELETE /api/comments/:id
+ * @access Private (requires authentication and admin authorization)
+ * @param {object} req - The request object.
+ * @param {object} res - The response object.
+ */
+exports.deleteComment = async (req, res) => {
+  const { id: commentId } = req.params; // Get comment ID from URL params
+
+  try {
+    // 1. Find the comment
+    const comment = await knex("comments").where({ id: commentId }).first();
+
+    if (!comment) {
+      return res.status(404).json({ message: "Comment not found." });
+    }
+
+    // 2. Authorization Check: Only admin can delete comments
+    // Assuming req.user.is_admin is set by your auth middleware for admin users
+    if (!req.user || !req.user.is_admin) {
+      return res
+        .status(403)
+        .json({ message: "Not authorized to delete comments." });
+    }
+
+    // 3. Delete the comment
+    // Due to onDelete('CASCADE') in migration, all replies to this comment will also be deleted.
+    await knex("comments").where({ id: commentId }).del();
+
+    res.status(200).json({ message: "Comment deleted successfully." });
+  } catch (error) {
+    console.error(`Error deleting comment ${commentId}:`, error.message);
+    res
+      .status(500)
+      .json({
+        message: "Server error deleting comment.",
+        error: error.message,
+      });
+  }
+};
