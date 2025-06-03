@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../api/api"; // Our configured Axios instance
-import { useAuth } from "../context/AuthContext";
+import api from "../api/api.ts";
+import { useAuth } from "../hooks/useAuth";
+import axios from "axios"; // Added for error handling
+import type { BackendErrorResponse } from "../types/index.ts"; // Added for error handling
+import "./AddRecipePage.css";
 
 // Interface for ingredient input fields
 interface IngredientInput {
   name: string;
-  quantity: string; // Use string for input, convert to number before sending
+  quantity: string;
   unit: string;
   notes: string;
 }
@@ -14,7 +17,7 @@ interface IngredientInput {
 interface FilterOption {
   id: number;
   name: string;
-  level_order?: number; // For difficulty levels
+  level_order?: number;
 }
 
 interface FilterOptionsResponse {
@@ -29,19 +32,14 @@ interface FilterOptionsResponse {
 }
 
 const AddRecipePage: React.FC = () => {
-  const { user } = useAuth(); // To check if user is admin
+  // --- ALL HOOKS MUST BE CALLED HERE, UNCONDITIONALLY, AT THE TOP LEVEL ---
+  const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect if not admin
-  if (!user || !user.is_admin) {
-    navigate("/"); // Or to a 403 forbidden page
-    return null; // Don't render anything
-  }
   // State for recipe details
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [instructions, setInstructions] = useState("");
-  // Separate states for hours and minutes for prep and cook time
   const [prepTimeHours, setPrepTimeHours] = useState<string>("");
   const [prepTimeMinutes, setPrepTimeMinutes] = useState<string>("");
   const [cookTimeHours, setCookTimeHours] = useState<string>("");
@@ -78,25 +76,62 @@ const AddRecipePage: React.FC = () => {
   >([]);
   const [selectedOccasions, setSelectedOccasions] = useState<number[]>([]);
 
+  // Effect to fetch filter options
   useEffect(() => {
     const fetchFilterOptions = async () => {
       setFiltersLoading(true);
       setFiltersError(null);
       try {
-        const response = await api.get("/data/filters");
+        const response = await api.get<FilterOptionsResponse>("/data/filters");
         setFilterOptions(response.data);
-      } catch (err: any) {
-        console.error("Error fetching filter options:", err);
-        setFiltersError("Failed to load filter options.");
+      } catch (err: unknown) {
+        // Changed 'any' to 'unknown'
+        // Type guard for AxiosError
+        if (axios.isAxiosError<BackendErrorResponse>(err)) {
+          //
+          console.error("Error fetching filter options:", err);
+          setFiltersError(
+            err.response?.data?.message || "Failed to load filter options."
+          ); //
+        } else if (err instanceof Error) {
+          // Handle general Error objects
+          console.error("Error fetching filter options:", err.message);
+          setFiltersError(err.message || "Failed to load filter options.");
+        } else {
+          // Handle other unknown error types
+          console.error(
+            "An unknown error occurred fetching filter options:",
+            err
+          );
+          setFiltersError(`An unknown error occurred: ${String(err)}`);
+        }
       } finally {
         setFiltersLoading(false);
       }
     };
     fetchFilterOptions();
-  }, []); // Empty dependency array means run once on mount
+  }, []);
+
+  // --- Conditional logic AFTER all Hooks are called ---
+  // Use useEffect to perform the redirection to avoid calling navigate on every render.
+  useEffect(() => {
+    // Only redirect if user is not defined (still loading) or not an admin.
+    // If user is null (not logged in) or not admin, redirect.
+    // If user is loading, wait for authLoading to complete.
+    // Assuming useAuth provides an isLoading state, otherwise this might fire prematurely.
+    if (user === null || user === undefined || !user.is_admin) {
+      navigate("/"); // Or to a 403 forbidden page
+    }
+  }, [user, navigate]); // Depend on user and navigate
+
+  // If the user is not an admin, don't render the form, but let the useEffect handle navigation.
+  // This will render null *after* hooks are called and the redirect is initiated.
+  if (user === null || user === undefined || !user.is_admin) {
+    return null;
+  }
+  // --- END Conditional logic ---
 
   // Handle changes to multi-select filters
-  // <--- NEW: Generic handler for multi-select dropdowns/checkboxes
   const handleMultiSelectChange = (
     e: React.ChangeEvent<HTMLSelectElement>,
     setter: React.Dispatch<React.SetStateAction<number[]>>
@@ -141,7 +176,6 @@ const AddRecipePage: React.FC = () => {
     setter: React.Dispatch<React.SetStateAction<string>>
   ) => {
     const value = e.target.value;
-    // Allow empty string (for initial empty state) or valid numbers
     if (value === "" || /^\d+$/.test(value)) {
       setter(value);
     }
@@ -178,7 +212,6 @@ const AddRecipePage: React.FC = () => {
     setMessage("");
     setLoading(true);
 
-    // Calculate total prep and cook times in minutes
     const totalPrepTime =
       (prepTimeHours ? parseInt(prepTimeHours) * 60 : 0) +
       (prepTimeMinutes ? parseInt(prepTimeMinutes) : 0);
@@ -186,7 +219,6 @@ const AddRecipePage: React.FC = () => {
       (cookTimeHours ? parseInt(cookTimeHours) * 60 : 0) +
       (cookTimeMinutes ? parseInt(cookTimeMinutes) : 0);
 
-    // Prepare ingredients for API (convert quantity to number, filter empty rows)
     const formattedIngredients = ingredients
       .filter(
         (ing) =>
@@ -196,7 +228,7 @@ const AddRecipePage: React.FC = () => {
       )
       .map((ing) => ({
         ...ing,
-        quantity: parseFloat(ing.quantity), // Convert string to number
+        quantity: parseFloat(ing.quantity),
       }));
 
     if (formattedIngredients.length === 0) {
@@ -208,7 +240,7 @@ const AddRecipePage: React.FC = () => {
     try {
       const recipeData = {
         title,
-        description: description || null, // Send null if empty
+        description: description || null,
         instructions,
         prep_time_minutes: totalPrepTime > 0 ? totalPrepTime : null,
         cook_time_minutes: totalCookTime > 0 ? totalCookTime : null,
@@ -228,7 +260,6 @@ const AddRecipePage: React.FC = () => {
 
       const response = await api.post("/recipes", recipeData);
       setMessage(response.data.message || "Recipe added successfully!");
-      // Optionally clear form or redirect
       setTitle("");
       setDescription("");
       setInstructions("");
@@ -249,144 +280,161 @@ const AddRecipePage: React.FC = () => {
       setSelectedDifficultyLevels([]);
       setSelectedOccasions([]);
       setLoading(false);
-      navigate(`/recipes/${response.data.recipeId}`); // Redirect to the new recipe page
-    } catch (error: any) {
-      console.error(
-        "Error adding recipe:",
-        error.response?.data || error.message
-      );
-      setMessage(
-        error.response?.data?.message ||
-          "Failed to add recipe. Please try again."
-      );
+      navigate(`/recipes/${response.data.recipeId}`);
+    } catch (error: unknown) {
+      // Changed from 'any'
+      if (axios.isAxiosError<BackendErrorResponse>(error)) {
+        //
+        console.error(
+          "Error adding recipe:",
+          error.response?.data || error.message
+        );
+        setMessage(
+          error.response?.data?.message ||
+            "Failed to add recipe. Please try again."
+        );
+      } else if (error instanceof Error) {
+        // Handle general Error objects
+        console.error("Error adding recipe:", error.message);
+        setMessage(error.message || "Failed to add recipe. Please try again.");
+      } else {
+        // Handle other unknown error types
+        console.error("An unknown error occurred adding recipe:", error);
+        setMessage(`An unknown error occurred: ${String(error)}`);
+      }
       setLoading(false);
     }
   };
 
+  // Render loading/error states for filters only if the user is authorized to view the page
+  // This ensures these return statements also come AFTER all hooks.
   if (filtersLoading) {
-    return <div style={styles.container}>Loading filter options...</div>;
+    return (
+      <div className="add-recipe-container">Loading filter options...</div>
+    );
   }
   if (filtersError) {
     return (
-      <div style={{ ...styles.container, color: "red" }}>
+      <div className="add-recipe-container add-recipe-message error">
         Error loading filter options: {filtersError}
       </div>
     );
   }
   if (!filterOptions) {
-    // Should not happen if no error
-    return <div style={styles.container}>No filter options available.</div>;
+    return (
+      <div className="add-recipe-container">No filter options available.</div>
+    );
   }
 
   return (
-    <div style={styles.container}>
-      <h2 style={styles.header}>Add New Recipe</h2>
-      <form onSubmit={handleSubmit} style={styles.form}>
+    <div className="add-recipe-container">
+      <h2 className="add-recipe-header">Add New Recipe</h2>
+      <form onSubmit={handleSubmit} className="add-recipe-form">
         {/* Recipe Details */}
-        <div style={styles.section}>
-          <h3 style={styles.sectionHeader}>Recipe Details</h3>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Title:</label>
+        <div className="add-recipe-section">
+          <h3 className="add-recipe-section-header">Recipe Details</h3>
+          <div className="add-recipe-form-group">
+            <label className="add-recipe-label">Title:</label>
             <input
               type="text"
               name="title"
               value={title}
               onChange={handleChange}
-              style={styles.input}
+              className="add-recipe-input"
               required
             />
           </div>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Description:</label>
+          <div className="add-recipe-form-group">
+            <label className="add-recipe-label">Description:</label>
             <textarea
               name="description"
               value={description}
               onChange={handleChange}
-              style={styles.textarea}
+              className="add-recipe-textarea"
             ></textarea>
           </div>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Instructions:</label>
+          <div className="add-recipe-form-group">
+            <label className="add-recipe-label">Instructions:</label>
             <textarea
               name="instructions"
               value={instructions}
               onChange={handleChange}
-              style={styles.textarea}
+              className="add-recipe-textarea"
               rows={8}
               required
               placeholder="Enter instructions, separating each step with a double newline (press Enter twice)."
             ></textarea>
           </div>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Preparation Time:</label>
-            <div style={styles.timeInputGroup}>
+          <div className="add-recipe-form-group">
+            <label className="add-recipe-label">Preparation Time:</label>
+            <div className="add-recipe-time-input-group">
               <input
                 type="number"
                 name="prepTimeHours"
                 value={prepTimeHours}
                 onChange={(e) => handleTimeChange(e, setPrepTimeHours)}
-                style={{ ...styles.input, ...styles.timeInput }}
+                className="add-recipe-input add-recipe-time-input"
                 placeholder="Hours"
                 min="0"
               />
-              <span style={styles.timeSeparator}>hrs</span>
+              <span className="add-recipe-time-separator">hrs</span>
               <input
                 type="number"
                 name="prepTimeMinutes"
                 value={prepTimeMinutes}
                 onChange={(e) => handleTimeChange(e, setPrepTimeMinutes)}
-                style={{ ...styles.input, ...styles.timeInput }}
+                className="add-recipe-input add-recipe-time-input"
                 placeholder="Minutes"
                 min="0"
                 max="59"
               />
-              <span style={styles.timeSeparator}>mins</span>
+              <span className="add-recipe-time-separator">mins</span>
             </div>
           </div>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Cook Time:</label>
-            <div style={styles.timeInputGroup}>
+          <div className="add-recipe-form-group">
+            <label className="add-recipe-label">Cook Time:</label>
+            <div className="add-recipe-time-input-group">
               <input
                 type="number"
                 name="cookTimeHours"
                 value={cookTimeHours}
                 onChange={(e) => handleTimeChange(e, setCookTimeHours)}
-                style={{ ...styles.input, ...styles.timeInput }}
+                className="add-recipe-input add-recipe-time-input"
                 placeholder="Hours"
                 min="0"
               />
-              <span style={styles.timeSeparator}>hrs</span>
+              <span className="add-recipe-time-separator">hrs</span>
               <input
                 type="number"
                 name="cookTimeMinutes"
                 value={cookTimeMinutes}
                 onChange={(e) => handleTimeChange(e, setCookTimeMinutes)}
-                style={{ ...styles.input, ...styles.timeInput }}
+                className="add-recipe-input add-recipe-time-input"
                 placeholder="Minutes"
                 min="0"
                 max="59"
               />
-              <span style={styles.timeSeparator}>mins</span>
+              <span className="add-recipe-time-separator">mins</span>
             </div>
           </div>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Servings:</label>
+          <div className="add-recipe-form-group">
+            <label className="add-recipe-label">Servings:</label>
             <input
               type="number"
               name="servings"
               value={servings}
               onChange={handleChange}
-              style={styles.input}
+              className="add-recipe-input"
             />
           </div>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Image URL:</label>
+          <div className="add-recipe-form-group">
+            <label className="add-recipe-label">Image URL:</label>
             <input
               type="url"
               name="imageUrl"
               value={imageUrl}
               onChange={handleChange}
-              style={styles.input}
+              className="add-recipe-input"
               placeholder="e.g., https://example.com/my-recipe.jpg"
             />
           </div>
@@ -400,17 +448,17 @@ const AddRecipePage: React.FC = () => {
               value={videoUrl}
               onChange={handleChange}
               className="add-recipe-input"
-              placeholder="e.g., https://www.youtube.com/watch?v=..."
+              placeholder="e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ"
             />
           </div>
         </div>
 
-        <div style={styles.section}>
-          <h3 style={styles.sectionHeader}>Recipe Filters</h3>
+        <div className="add-recipe-section">
+          <h3 className="add-recipe-section-header">Recipe Filters</h3>
 
           {/* Categories */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Categories (Meal Type):</label>
+          <div className="add-recipe-form-group">
+            <label className="add-recipe-label">Categories (Meal Type):</label>
             <select
               multiple
               name="categories"
@@ -418,7 +466,7 @@ const AddRecipePage: React.FC = () => {
               onChange={(e) =>
                 handleMultiSelectChange(e, setSelectedCategories)
               }
-              className="select-multi" // <--- USE CLASS NAME HERE
+              className="add-recipe-select-multi"
             >
               {filterOptions.categories.map((option) => (
                 <option key={option.id} value={option.id}>
@@ -429,14 +477,14 @@ const AddRecipePage: React.FC = () => {
           </div>
 
           {/* Cuisines */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Cuisines:</label>
+          <div className="add-recipe-form-group">
+            <label className="add-recipe-label">Cuisines:</label>
             <select
               multiple
               name="cuisines"
               value={selectedCuisines.map(String)}
               onChange={(e) => handleMultiSelectChange(e, setSelectedCuisines)}
-              className="select-multi" // <--- USE CLASS NAME HERE
+              className="add-recipe-select-multi"
             >
               {filterOptions.cuisines.map((option) => (
                 <option key={option.id} value={option.id}>
@@ -447,14 +495,14 @@ const AddRecipePage: React.FC = () => {
           </div>
 
           {/* Seasons */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Seasons:</label>
+          <div className="add-recipe-form-group">
+            <label className="add-recipe-label">Seasons:</label>
             <select
               multiple
               name="seasons"
               value={selectedSeasons.map(String)}
               onChange={(e) => handleMultiSelectChange(e, setSelectedSeasons)}
-              className="select-multi" // <--- USE CLASS NAME HERE
+              className="add-recipe-select-multi"
             >
               {filterOptions.seasons.map((option) => (
                 <option key={option.id} value={option.id}>
@@ -465,8 +513,10 @@ const AddRecipePage: React.FC = () => {
           </div>
 
           {/* Dietary Restrictions */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Dietary Restrictions/Needs:</label>
+          <div className="add-recipe-form-group">
+            <label className="add-recipe-label">
+              Dietary Restrictions/Needs:
+            </label>
             <select
               multiple
               name="dietaryRestrictions"
@@ -474,7 +524,7 @@ const AddRecipePage: React.FC = () => {
               onChange={(e) =>
                 handleMultiSelectChange(e, setSelectedDietaryRestrictions)
               }
-              className="select-multi" // <--- USE CLASS NAME HERE
+              className="add-recipe-select-multi"
             >
               {filterOptions.dietaryRestrictions.map((option) => (
                 <option key={option.id} value={option.id}>
@@ -485,8 +535,8 @@ const AddRecipePage: React.FC = () => {
           </div>
 
           {/* Cooking Methods */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Cooking Methods:</label>
+          <div className="add-recipe-form-group">
+            <label className="add-recipe-label">Cooking Methods:</label>
             <select
               multiple
               name="cookingMethods"
@@ -494,7 +544,7 @@ const AddRecipePage: React.FC = () => {
               onChange={(e) =>
                 handleMultiSelectChange(e, setSelectedCookingMethods)
               }
-              className="select-multi" // <--- USE CLASS NAME HERE
+              className="add-recipe-select-multi"
             >
               {filterOptions.cookingMethods.map((option) => (
                 <option key={option.id} value={option.id}>
@@ -505,8 +555,8 @@ const AddRecipePage: React.FC = () => {
           </div>
 
           {/* Main Ingredients */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Main Ingredients:</label>
+          <div className="add-recipe-form-group">
+            <label className="add-recipe-label">Main Ingredients:</label>
             <select
               multiple
               name="mainIngredients"
@@ -514,7 +564,7 @@ const AddRecipePage: React.FC = () => {
               onChange={(e) =>
                 handleMultiSelectChange(e, setSelectedMainIngredients)
               }
-              className="select-multi" // <--- USE CLASS NAME HERE
+              className="add-recipe-select-multi"
             >
               {filterOptions.mainIngredients.map((option) => (
                 <option key={option.id} value={option.id}>
@@ -525,8 +575,8 @@ const AddRecipePage: React.FC = () => {
           </div>
 
           {/* Difficulty Levels */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Difficulty Level:</label>
+          <div className="add-recipe-form-group">
+            <label className="add-recipe-label">Difficulty Level:</label>
             <select
               multiple
               name="difficultyLevels"
@@ -534,14 +584,11 @@ const AddRecipePage: React.FC = () => {
               onChange={(e) =>
                 handleMultiSelectChange(e, setSelectedDifficultyLevels)
               }
-              className="select-multi" // <--- USE CLASS NAME HERE
+              className="add-recipe-select-multi"
             >
+              {/* Simplified sorting for difficulty levels */}
               {filterOptions.difficultyLevels
-                .sort(
-                  (a, b) =>
-                    (a.level_order || 0) - (b.level_order || 0) ||
-                    a.name.localeCompare(b.name)
-                )
+                .sort((a, b) => (a.level_order || 0) - (b.level_order || 0))
                 .map((option) => (
                   <option key={option.id} value={option.id}>
                     {option.name}
@@ -551,14 +598,14 @@ const AddRecipePage: React.FC = () => {
           </div>
 
           {/* Occasions */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Occasions:</label>
+          <div className="add-recipe-form-group">
+            <label className="add-recipe-label">Occasions:</label>
             <select
               multiple
               name="occasions"
               value={selectedOccasions.map(String)}
               onChange={(e) => handleMultiSelectChange(e, setSelectedOccasions)}
-              className="select-multi" // <--- USE CLASS NAME HERE
+              className="add-recipe-select-multi"
             >
               {filterOptions.occasions.map((option) => (
                 <option key={option.id} value={option.id}>
@@ -568,18 +615,19 @@ const AddRecipePage: React.FC = () => {
             </select>
           </div>
         </div>
+
         {/* Ingredients Section */}
-        <div style={styles.section}>
-          <h3 style={styles.sectionHeader}>Ingredients</h3>
+        <div className="add-recipe-section">
+          <h3 className="add-recipe-section-header">Ingredients</h3>
           {ingredients.map((ingredient, index) => (
-            <div key={index} style={styles.ingredientRow}>
+            <div key={index} className="add-recipe-ingredient-row">
               <input
                 type="text"
                 name="name"
                 placeholder="Ingredient Name"
                 value={ingredient.name}
                 onChange={(e) => handleIngredientChange(index, e)}
-                style={styles.ingredientInput}
+                className="add-recipe-ingredient-input"
                 required
               />
               <input
@@ -588,8 +636,9 @@ const AddRecipePage: React.FC = () => {
                 placeholder="Qty"
                 value={ingredient.quantity}
                 onChange={(e) => handleIngredientChange(index, e)}
-                style={{ ...styles.ingredientInput, width: "60px" }}
-                step="0.01" // Allow decimal quantities
+                className="add-recipe-ingredient-input"
+                style={{ width: "60px" }} /* Keep specific width for qty */
+                step="0.01"
                 required
               />
               <input
@@ -598,7 +647,8 @@ const AddRecipePage: React.FC = () => {
                 placeholder="Unit (e.g., cups, grams)"
                 value={ingredient.unit}
                 onChange={(e) => handleIngredientChange(index, e)}
-                style={{ ...styles.ingredientInput, width: "120px" }}
+                className="add-recipe-ingredient-input"
+                style={{ width: "120px" }} /* Keep specific width for unit */
                 required
               />
               <input
@@ -607,13 +657,13 @@ const AddRecipePage: React.FC = () => {
                 placeholder="Notes (e.g., diced, to taste)"
                 value={ingredient.notes}
                 onChange={(e) => handleIngredientChange(index, e)}
-                style={styles.ingredientInput}
+                className="add-recipe-ingredient-input"
               />
               {ingredients.length > 1 && (
                 <button
                   type="button"
                   onClick={() => removeIngredientRow(index)}
-                  style={styles.removeButton}
+                  className="add-recipe-button-remove"
                 >
                   -
                 </button>
@@ -623,152 +673,33 @@ const AddRecipePage: React.FC = () => {
           <button
             type="button"
             onClick={addIngredientRow}
-            style={styles.addButton}
+            className="add-recipe-button-add"
           >
             + Add Ingredient
           </button>
         </div>
 
-        <button type="submit" style={styles.submitButton} disabled={loading}>
+        <button
+          type="submit"
+          className="add-recipe-button-submit"
+          disabled={loading}
+        >
           {loading ? "Adding Recipe..." : "Add Recipe"}
         </button>
       </form>
-      {message && <p style={styles.message}>{message}</p>}
+      {message && (
+        <p
+          className={`add-recipe-message ${
+            message.includes("Failed") || message.includes("Error")
+              ? "error"
+              : ""
+          }`}
+        >
+          {message}
+        </p>
+      )}
     </div>
   );
-};
-
-const styles = {
-  container: {
-    maxWidth: "800px",
-    margin: "30px auto",
-    padding: "30px",
-    border: "1px solid #ddd",
-    borderRadius: "8px",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-    backgroundColor: "#fff",
-    fontFamily: "Arial, sans-serif",
-  },
-  header: {
-    textAlign: "center",
-    color: "#333",
-    marginBottom: "30px",
-    fontSize: "2em",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-  },
-  section: {
-    marginBottom: "30px",
-    padding: "20px",
-    border: "1px solid #eee",
-    borderRadius: "6px",
-    backgroundColor: "#fdfdfd",
-  },
-  sectionHeader: {
-    color: "#007bff",
-    marginBottom: "20px",
-    fontSize: "1.5em",
-    borderBottom: "1px solid #eee",
-    paddingBottom: "10px",
-  },
-  formGroup: {
-    marginBottom: "15px",
-    display: "flex",
-    flexDirection: "column",
-  },
-  label: {
-    marginBottom: "8px",
-    fontWeight: "bold",
-    color: "#555",
-    fontSize: "0.95em",
-  },
-  input: {
-    padding: "12px",
-    border: "1px solid #ccc",
-    borderRadius: "5px",
-    fontSize: "1em",
-    boxSizing: "border-box",
-  },
-  textarea: {
-    padding: "12px",
-    border: "1px solid #ccc",
-    borderRadius: "5px",
-    fontSize: "1em",
-    resize: "vertical",
-    minHeight: "100px",
-    boxSizing: "border-box",
-  },
-  timeInputGroup: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-  },
-  timeInput: {
-    width: "80px",
-    textAlign: "center",
-  },
-  timeSeparator: {
-    fontWeight: "bold",
-    color: "#777",
-  },
-  ingredientRow: {
-    display: "flex",
-    gap: "10px",
-    marginBottom: "10px",
-    alignItems: "center",
-    flexWrap: "wrap",
-  },
-  ingredientInput: {
-    flex: "1",
-    minWidth: "100px",
-    padding: "8px",
-    border: "1px solid #ccc",
-    borderRadius: "4px",
-    fontSize: "0.9em",
-  },
-  addButton: {
-    padding: "10px 15px",
-    backgroundColor: "#28a745",
-    color: "white",
-    border: "none",
-    borderRadius: "4px",
-    cursor: "pointer",
-    fontSize: "1em",
-    marginTop: "10px",
-    alignSelf: "flex-start",
-  },
-  removeButton: {
-    padding: "8px 12px",
-    backgroundColor: "#dc3545",
-    color: "white",
-    border: "none",
-    borderRadius: "4px",
-    cursor: "pointer",
-    fontSize: "0.9em",
-  },
-  submitButton: {
-    padding: "15px 25px",
-    backgroundColor: "#007bff",
-    color: "white",
-    border: "none",
-    borderRadius: "5px",
-    cursor: "pointer",
-    fontSize: "1.2em",
-    marginTop: "30px",
-    alignSelf: "center",
-    width: "fit-content",
-  },
-  message: {
-    textAlign: "center",
-    marginTop: "20px",
-    padding: "12px",
-    backgroundColor: "#d4edda",
-    color: "#155724",
-    border: "1px solid #c3e6cb",
-    borderRadius: "5px",
-  },
 };
 
 export default AddRecipePage;

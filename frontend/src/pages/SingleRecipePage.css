@@ -458,13 +458,14 @@
 }
 
 .single-recipe-comment-item {
-  margin-bottom: var(--spacing-md);
-  padding: var(--spacing-md);
-  border-radius: var(--border-radius-md);
   background-color: var(
     --color-background-light
-  ); /* Lighter background for comments */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); /* Subtle shadow */
+  ); /* Or a specific light color */
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md); /* Space between comments */
+  overflow: hidden; /* Clear floats/contain any child elements */
 }
 
 .single-recipe-comment-header {
@@ -511,4 +512,68 @@
 
 .single-recipe-comment-button:hover {
   background-color: #a75c36; /* Darker hover color */
+}
+
+.single-recipe-comment-reply-button {
+  background: none;
+  border: none;
+  color: var(--color-primary); /* A nice accent color */
+  font-size: 0.9em;
+  cursor: pointer;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  transition: background-color 0.2s ease, color 0.2s ease;
+  margin-top: var(--spacing-sm);
+  display: inline-block; /* Allows it to sit next to comment text */
+  font-weight: 600; /* Make it slightly bolder */
+}
+
+.single-recipe-comment-reply-button:hover {
+  background-color: var(--color-primary-light); /* Lighter accent on hover */
+  color: var(--color-text-white);
+}
+
+/* Styles for the Reply Form (when it appears) */
+.single-recipe-reply-form {
+  border-top: 1px solid var(--color-border-light); /* Separator line */
+  padding-top: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  margin-left: var(--spacing-lg); /* Indent the reply form slightly */
+  background-color: var(
+    --color-background-medium
+  ); /* Slightly different background */
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
+}
+
+.single-recipe-reply-form .single-recipe-comment-input {
+  /* Adjust textarea within reply form if needed */
+  width: calc(100% - (2 * var(--spacing-sm))); /* Account for padding */
+  box-sizing: border-box; /* Include padding/border in width */
+  margin-bottom: var(--spacing-sm);
+}
+
+.single-recipe-reply-form .single-recipe-comment-button {
+  /* Adjust button within reply form */
+  width: auto;
+  align-self: flex-end; /* Align button to the right */
+}
+
+/* Ensure that nested comments also get proper padding from their parent */
+.single-recipe-comment-replies {
+  list-style-type: none;
+  padding-left: var(--spacing-xl); /* Already existing for indentation */
+  margin-top: var(--spacing-md);
+  position: relative; /* For the vertical line effect */
+}
+
+.single-recipe-comment-replies::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--spacing-xl) / 2); /* Half of padding-left to center line */
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: var(--color-border-light); /* A subtle line for threading */
+  border-radius: 1px;
 }

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import api from "../api/api";
-import { useAuth } from "../context/AuthContext";
+import api from "../api/api.ts";
+import { useAuth } from "../hooks/useAuth";
 import "./EditRecipePage.css"; // Import its styles
+import axios from "axios"; // Import AxiosError
+import type { BackendErrorResponse } from "../types/index.ts"; // Assuming you have this type
 
 interface IngredientInput {
   name: string;
@@ -142,7 +144,6 @@ const EditRecipePage: React.FC = () => {
         const recipeResponse = await api.get<RecipeData>(`/recipes/${id}`);
         const recipe = recipeResponse.data;
 
-        // Check authorization
         if (user?.id !== recipe.user_id && !user?.is_admin) {
           navigate("/");
           return;
@@ -177,7 +178,7 @@ const EditRecipePage: React.FC = () => {
           }))
         );
 
-        // <--- NEW: Pre-populate selected filter states from fetched recipe
+        // Pre-populate selected filter states from fetched recipe
         setSelectedCategories(recipe.categories || []);
         setSelectedCuisines(recipe.cuisines || []);
         setSelectedSeasons(recipe.seasons || []);
@@ -186,26 +187,41 @@ const EditRecipePage: React.FC = () => {
         setSelectedMainIngredients(recipe.main_ingredients || []);
         setSelectedDifficultyLevels(recipe.difficulty_levels || []);
         setSelectedOccasions(recipe.occasions || []);
-        // --- END NEW ---
 
         setLoadingRecipe(false);
-      } catch (err: any) {
-        console.error("Error fetching data for edit:", err);
-        setError(
-          err.response?.data?.message || "Failed to load data for editing."
-        );
+      } catch (err: unknown) {
+        // Changed 'any' to 'unknown'
+        if (axios.isAxiosError<BackendErrorResponse>(err)) {
+          console.error("Error fetching data for edit:", err);
+          setError(
+            err.response?.data?.message || "Failed to load data for editing."
+          );
+          setFiltersError(
+            // Ensure filtersError is set correctly for Axios errors
+            err.response?.data?.message ||
+              "Failed to load filter options for editing."
+          );
+        } else if (err instanceof Error) {
+          console.error("Error fetching data for edit:", err.message);
+          setError(err.message || "Failed to load data for editing.");
+          setFiltersError(
+            err.message || "Failed to load filter options for editing."
+          );
+        } else {
+          console.error(
+            "An unknown error occurred fetching data for edit:",
+            err
+          );
+          setError(`An unknown error occurred: ${String(err)}`);
+          setFiltersError(`An unknown error occurred: ${String(err)}`);
+        }
         setLoadingRecipe(false);
-        setFiltersError(
-          err.response?.data?.message ||
-            "Failed to load filter options for editing."
-        ); // Also set filter error
       }
     };
     fetchData();
   }, [id, navigate, user]); // Depend on ID, navigate, and user for auth check
 
   // Handle changes to multi-select filters (same as AddRecipePage)
-  // <--- NEW: Generic handler for multi-select dropdowns/checkboxes
   const handleMultiSelectChange = (
     e: React.ChangeEvent<HTMLSelectElement>,
     setter: React.Dispatch<React.SetStateAction<number[]>>
@@ -338,15 +354,26 @@ const EditRecipePage: React.FC = () => {
       setMessage(response.data.message || "Recipe updated successfully!");
       setSubmitLoading(false);
       navigate(`/recipes/${id}`); // Redirect to the updated recipe page
-    } catch (error: any) {
-      console.error(
-        "Error updating recipe:",
-        error.response?.data || error.message
-      );
-      setMessage(
-        error.response?.data?.message ||
-          "Failed to update recipe. Please try again."
-      );
+    } catch (error: unknown) {
+      // Changed 'any' to 'unknown'
+      if (axios.isAxiosError<BackendErrorResponse>(error)) {
+        console.error(
+          "Error updating recipe:",
+          error.response?.data || error.message
+        );
+        setMessage(
+          error.response?.data?.message ||
+            "Failed to update recipe. Please try again."
+        );
+      } else if (error instanceof Error) {
+        console.error("Error updating recipe:", error.message);
+        setMessage(
+          error.message || "Failed to update recipe. Please try again."
+        );
+      } else {
+        console.error("An unknown error occurred updating recipe:", error);
+        setMessage(`An unknown error occurred: ${String(error)}`);
+      }
       setSubmitLoading(false);
     }
   };
@@ -361,7 +388,7 @@ const EditRecipePage: React.FC = () => {
 
   if (error || filtersError) {
     return (
-      <div className="edit-recipe-container" style={{ color: "red" }}>
+      <div className="edit-recipe-container edit-recipe-message error">
         Error: {error || filtersError}
       </div>
     );
@@ -738,7 +765,17 @@ const EditRecipePage: React.FC = () => {
           {submitLoading ? "Updating Recipe..." : "Update Recipe"}
         </button>
       </form>
-      {message && <p className="edit-recipe-message">{message}</p>}
+      {message && (
+        <p
+          className={`edit-recipe-message ${
+            message.includes("Failed") || message.includes("Error")
+              ? "error"
+              : ""
+          }`}
+        >
+          {message}
+        </p>
+      )}
     </div>
   );
 };

@@ -1,0 +1,186 @@
+/* Container for the entire page */
+.add-recipe-container {
+  max-width: 800px;
+  margin: 30px auto;
+  padding: 30px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
+  font-family: Arial, sans-serif;
+}
+
+/* Page Header */
+.add-recipe-header {
+  text-align: center;
+  color: #333;
+  margin-bottom: 30px;
+  font-size: 2em;
+}
+
+/* Form Styling */
+.add-recipe-form {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Section Styling (e.g., Recipe Details, Ingredients) */
+.add-recipe-section {
+  margin-bottom: 30px;
+  padding: 20px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  background-color: #fdfdfd;
+}
+
+.add-recipe-section-header {
+  color: #007bff;
+  margin-bottom: 20px;
+  font-size: 1.5em;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+/* Form Group (label + input/textarea) */
+.add-recipe-form-group {
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+}
+
+.add-recipe-label {
+  margin-bottom: 8px;
+  font-weight: bold;
+  color: #555;
+  font-size: 0.95em;
+}
+
+.add-recipe-input,
+.add-recipe-textarea,
+.add-recipe-select-multi {
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 1em;
+  box-sizing: border-box; /* Ensures padding doesn't increase total width/height */
+  width: 100%; /* Make inputs take full width of their container */
+}
+
+.add-recipe-textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+/* Time Input Group (for prep/cook time) */
+.add-recipe-time-input-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.add-recipe-time-input {
+  width: 80px;
+  text-align: center;
+}
+
+.add-recipe-time-separator {
+  font-weight: bold;
+  color: #777;
+}
+
+/* Ingredient Row */
+.add-recipe-ingredient-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  align-items: center;
+  flex-wrap: wrap; /* Allows items to wrap on smaller screens */
+}
+
+.add-recipe-ingredient-input {
+  flex: 1; /* Allows inputs to grow and shrink */
+  min-width: 100px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+/* Buttons */
+.add-recipe-button-add {
+  padding: 10px 15px;
+  background-color: #28a745; /* Green */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1em;
+  margin-top: 10px;
+  align-self: flex-start;
+  transition: background-color 0.2s ease;
+}
+
+.add-recipe-button-add:hover {
+  background-color: #218838;
+}
+
+.add-recipe-button-remove {
+  padding: 8px 12px;
+  background-color: #dc3545; /* Red */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.2s ease;
+}
+
+.add-recipe-button-remove:hover {
+  background-color: #c82333;
+}
+
+.add-recipe-button-submit {
+  padding: 15px 25px;
+  background-color: #007bff; /* Blue */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1.2em;
+  margin-top: 30px;
+  align-self: center;
+  width: fit-content;
+  transition: background-color 0.2s ease;
+}
+
+.add-recipe-button-submit:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.add-recipe-button-submit:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Message Display (success/error) */
+.add-recipe-message {
+  text-align: center;
+  margin-top: 20px;
+  padding: 12px;
+  background-color: #d4edda; /* Light green for success */
+  color: #155724; /* Dark green for success text */
+  border: 1px solid #c3e6cb;
+  border-radius: 5px;
+}
+
+.add-recipe-message.error {
+  background-color: #f8d7da; /* Light red for error */
+  color: #721c24; /* Dark red for error text */
+  border-color: #f5c6cb;
+}
+
+/* Adjustments for multi-selects */
+.add-recipe-select-multi {
+  height: 150px; /* Give multiple selects a fixed height for better visibility */
+  overflow-y: auto; /* Enable scrolling if options exceed height */
+}

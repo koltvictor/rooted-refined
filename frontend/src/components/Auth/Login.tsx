@@ -2,30 +2,42 @@
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../../api/api";
-import { useAuth } from "../../context/AuthContext";
+import api from "../../api/api.ts";
+import axios from "axios";
+import type { BackendErrorResponse } from "../../types/index.ts";
+import { useAuth } from "../../hooks/useAuth";
 
 const Login: React.FC = () => {
-  const [identifier, setIdentifier] = useState(""); // Can be username or email
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
-  const { login } = useAuth(); // Get login function from AuthContext
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage(""); // Clear previous messages
+    setMessage("");
     try {
       const response = await api.post("/auth/login", { identifier, password });
-      login(response.data.token, response.data.user); // Log in the user
+      login(response.data.token, response.data.user);
       setMessage("Login successful!");
-      navigate("/recipes"); // Redirect to recipes page
-    } catch (error: any) {
-      console.error("Login failed:", error.response?.data || error.message);
-      setMessage(
-        error.response?.data?.message ||
-          "Login failed. Please check your credentials."
-      );
+      navigate("/recipes");
+    } catch (error: unknown) {
+      if (axios.isAxiosError<BackendErrorResponse>(error)) {
+        console.error("Login failed:", error.response?.data || error.message);
+        setMessage(
+          error.response?.data?.message ||
+            "Login failed. Please check your credentials."
+        );
+      } else if (error instanceof Error) {
+        console.error("Login failed:", error.message);
+        setMessage(
+          error.message || "An unexpected error occurred during login."
+        );
+      } else {
+        console.error("Login failed: An unknown error occurred", error);
+        setMessage(`An unknown error occurred during login: ${String(error)}`);
+      }
     }
   };
 
@@ -71,8 +83,8 @@ const Login: React.FC = () => {
   );
 };
 
-// Reusing styles from Register.tsx, ideally in a separate CSS file
-const styles = {
+import type { CSSProperties } from "react";
+const styles: { [key: string]: CSSProperties } = {
   container: {
     maxWidth: "400px",
     margin: "50px auto",

@@ -3,16 +3,13 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/api"; // Updated path if needed
 import "./FilterOverlay.css";
-// Import the default axios instance to use axios.isAxiosError
 import axios, { AxiosError } from "axios"; // Keep AxiosError for the type guard check
-// Import all necessary types from the centralized types file
 import type {
   FilterOption,
   FilterOptionsResponse,
   SelectedFilters,
 } from "../../types/index";
 
-// --- Props for FilterOverlay Component (Using imported SelectedFilters) ---
 interface FilterOverlayProps {
   isOpen: boolean;
   onApplyFilters: (selectedFilters: SelectedFilters) => void;
@@ -20,7 +17,10 @@ interface FilterOverlayProps {
   initialSelectedFilters: SelectedFilters;
   onClearAllFilters: () => void;
 }
-// --- END Props ---
+
+interface BackendErrorResponse {
+  message: string;
+}
 
 const FilterOverlay: React.FC<FilterOverlayProps> = ({
   isOpen,
@@ -53,22 +53,20 @@ const FilterOverlay: React.FC<FilterOverlayProps> = ({
         const response = await api.get<FilterOptionsResponse>("/data/filters");
         setFilterOptions(response.data);
       } catch (err: unknown) {
-        // Type guard to check if err is an AxiosError
-        if (axios.isAxiosError(err)) {
-          // Explicitly use AxiosError as a type, even if redundant with isAxiosError,
-          // to satisfy linters that might complain about "AxiosError defined but never used".
-          const axiosError: AxiosError = err;
+        if (axios.isAxiosError<BackendErrorResponse>(err)) {
+          // <--- CHANGE IS HERE
+          const axiosError: AxiosError<BackendErrorResponse> = err; // <--- AND HERE
           console.error("Error fetching filter options:", axiosError);
+
+          // Safely access message using optional chaining, and provide a fallback
           setFiltersError(
-            axiosError.response?.data?.message ||
+            axiosError.response?.data?.message || // Now TypeScript knows data *might* have a message
               "Failed to load filter options."
           );
         } else if (err instanceof Error) {
-          // err is now known to be an instance of Error
           console.error("General error fetching filter options:", err.message);
           setFiltersError(err.message || "An unexpected error occurred.");
         } else {
-          // Handle other unknown error types by converting them to a string
           console.error("An unknown error occurred:", err);
           setFiltersError(`An unknown error occurred: ${String(err)}`);
         }

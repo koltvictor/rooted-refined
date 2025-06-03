@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../hooks/useAuth";
 import "./NavBar.css";
 
 const NavBar: React.FC = () => {
@@ -14,7 +14,7 @@ const NavBar: React.FC = () => {
   return (
     <nav className="navbar">
       <div className="navbar-brand">
-        <Link to="/">Forest & Forage</Link>
+        <Link to="/">Kolt's Green Table</Link>
       </div>
       <ul className="navbar-links">
         <li>

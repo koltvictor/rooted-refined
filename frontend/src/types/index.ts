@@ -4,9 +4,6 @@
 export interface PaginatedRecipesResponse {
   recipes: Recipe[];
   totalRecipes: number;
-  // page: number; // Add if your API returns pagination info
-  // limit: number;
-  // totalPages: number;
 }
 
 export interface FilterOptionsResponse {
@@ -100,4 +97,10 @@ export interface SelectedFilters {
   mainIngredients: number[];
   difficultyLevels: number[];
   occasions: number[];
+}
+
+export interface BackendErrorResponse {
+  message: string;
+  errors?: Record<string, string[]>;
+  statusCode?: number;
 }

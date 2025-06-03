@@ -5,8 +5,10 @@ import { Link } from "react-router-dom";
 import api from "../api/api"; // Updated path
 import "./RecipesPage.css";
 import { useDebounce } from "../utils/hooks";
-import { useAuth } from "../context/AuthContext"; // Updated path
+import { useAuth } from "../hooks/useAuth";
 import FilterOverlay from "../components/FilterOverlay/FilterOverlay";
+import axios from "axios"; // Import axios and AxiosError
+import type { BackendErrorResponse } from "../types/index.ts"; // Assuming BackendErrorResponse is in types/index.ts
 
 // Import all necessary types from the centralized types file
 import type {
@@ -95,9 +97,23 @@ const RecipesPage: React.FC = () => {
           params,
         });
         setAllRecipes(response.data.recipes);
-      } catch (err: any) {
-        console.error("Error fetching recipes:", err);
-        setError("Failed to load recipes. Please try again later.");
+      } catch (err: unknown) {
+        // Changed from 'any'
+        if (axios.isAxiosError<BackendErrorResponse>(err)) {
+          console.error("Error fetching recipes:", err);
+          setError(
+            err.response?.data?.message ||
+              "Failed to load recipes. Please try again later."
+          );
+        } else if (err instanceof Error) {
+          console.error("Error fetching recipes:", err.message);
+          setError(
+            err.message || "Failed to load recipes. Please try again later."
+          );
+        } else {
+          console.error("An unknown error occurred fetching recipes:", err);
+          setError(`An unknown error occurred: ${String(err)}`);
+        }
       } finally {
         setLoading(false);
       }
@@ -112,7 +128,7 @@ const RecipesPage: React.FC = () => {
     return allRecipes.filter(
       (recipe) =>
         recipe.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        recipe.description.toLowerCase().includes(searchTerm.toLowerCase())
+        recipe.description?.toLowerCase().includes(searchTerm.toLowerCase()) // Added optional chaining for description
     );
   }, [allRecipes, searchTerm]);
 
@@ -153,7 +169,9 @@ const RecipesPage: React.FC = () => {
 
   return (
     <div className="recipes-page-container">
-      <h1 className="recipes-header">The Wild Harvest</h1>
+      <h1 className="recipes-header">
+        The Art of Seasonal, Plant-Based Living
+      </h1>
 
       <div className="search-filter-controls">
         <div className="search-input-wrapper">

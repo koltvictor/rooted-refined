@@ -2,41 +2,19 @@
 
 import React, { useState, useEffect } from "react";
 import type { FormEvent } from "react";
-import api from "../api/api"; // Updated path if needed after previous step
+import api from "../api/api.ts";
 import { useNavigate } from "react-router-dom";
 import "./UserProfilePage.css";
-import { useAuth } from "../context/AuthContext"; // Updated path if needed
+import { useAuth } from "../hooks/useAuth";
+import axios from "axios"; // Import axios and AxiosError
+import type { BackendErrorResponse } from "../types/index.ts"; // Assuming BackendErrorResponse is in types/index.ts
 
 // Import all necessary types from the centralized types file
 import type {
-  FilterOption, // Keep this if you need to specifically type a variable as FilterOption within the component
+  FilterOption,
   UserProfile,
   FilterOptionsResponse,
 } from "../types/index";
-
-// Removed these interfaces as they are now in types/index.ts:
-/*
-interface UserProfile {
-  id: number;
-  username: string;
-  email: string;
-  first_name: string | null;
-  last_name: string | null;
-  bio: string | null;
-  profile_picture_url: string | null;
-  dietary_restrictions: FilterOption[]; // Array of {id, name}
-}
-
-interface FilterOption {
-  id: number;
-  name: string;
-}
-
-interface FilterOptionsResponse {
-  dietaryRestrictions: FilterOption[]; // Only need dietary restrictions from this
-  // Add other filter types here if you want to display/edit them on the profile
-}
-*/
 
 const getFullImageUrl = (
   relativePath: string | null | undefined
@@ -48,14 +26,14 @@ const getFullImageUrl = (
 };
 
 const UserProfilePage: React.FC = () => {
-  const { user: authUser, refreshUserProfile } = useAuth(); // Destructure refreshUserProfile
-  const [profile, setProfile] = useState<UserProfile | null>(null); // Use imported UserProfile
+  const { user: authUser, refreshUserProfile } = useAuth();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState<Partial<UserProfile>>({}); // Use imported UserProfile
+  const [formData, setFormData] = useState<Partial<UserProfile>>({});
   const [availableDietaryRestrictions, setAvailableDietaryRestrictions] =
-    useState<FilterOption[]>([]); // Use imported FilterOption
+    useState<FilterOption[]>([]);
   const [selectedDietaryRestrictionIds, setSelectedDietaryRestrictionIds] =
     useState<number[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -85,7 +63,7 @@ const UserProfilePage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await api.get<UserProfile>("/users/profile"); // Use imported UserProfile
+        const response = await api.get<UserProfile>("/users/profile");
         setProfile(response.data);
         setFormData(response.data);
         setSelectedDietaryRestrictionIds(
@@ -94,11 +72,23 @@ const UserProfilePage: React.FC = () => {
         setProfilePicturePreview(
           getFullImageUrl(response.data.profile_picture_url)
         );
-      } catch (err: any) {
-        console.error("Error fetching user profile:", err);
-        setError(err.response?.data?.message || "Failed to load profile.");
-        if (err.response?.status === 401 || err.response?.status === 403) {
-          navigate("/login");
+      } catch (err: unknown) {
+        // Changed from 'any'
+        if (axios.isAxiosError<BackendErrorResponse>(err)) {
+          console.error("Error fetching user profile:", err);
+          setError(err.response?.data?.message || "Failed to load profile.");
+          if (err.response?.status === 401 || err.response?.status === 403) {
+            navigate("/login");
+          }
+        } else if (err instanceof Error) {
+          console.error("Error fetching user profile:", err.message);
+          setError(err.message || "Failed to load profile.");
+        } else {
+          console.error(
+            "An unknown error occurred fetching user profile:",
+            err
+          );
+          setError(`An unknown error occurred: ${String(err)}`);
         }
       } finally {
         setLoading(false);
@@ -107,12 +97,26 @@ const UserProfilePage: React.FC = () => {
 
     const fetchAvailableDietaryRestrictions = async () => {
       try {
-        const response = await api.get<FilterOptionsResponse>("/data/filters"); // Use imported FilterOptionsResponse
+        const response = await api.get<FilterOptionsResponse>("/data/filters");
         setAvailableDietaryRestrictions(
           response.data.dietaryRestrictions || []
         );
-      } catch (err: any) {
-        console.error("Error fetching available dietary restrictions:", err);
+      } catch (err: unknown) {
+        // Changed from 'any'
+        if (axios.isAxiosError<BackendErrorResponse>(err)) {
+          console.error("Error fetching available dietary restrictions:", err);
+          // You might set a specific error state for filters if desired
+        } else if (err instanceof Error) {
+          console.error(
+            "Error fetching available dietary restrictions:",
+            err.message
+          );
+        } else {
+          console.error(
+            "An unknown error occurred fetching dietary restrictions:",
+            err
+          );
+        }
       }
     };
 
@@ -192,20 +196,29 @@ const UserProfilePage: React.FC = () => {
       } else {
         console.warn("refreshUserProfile is not available in AuthContext.");
       }
-    } catch (err: any) {
-      console.error("Error saving profile:", err);
-      if (err.response?.data?.message) {
-        if (err.response.data.message.includes("File size too large")) {
-          setError("File size too large. Max 5MB.");
-        } else if (err.response.data.message.includes("Invalid file type")) {
-          setError(
-            "Invalid file type. Only images (PNG, JPEG, GIF) are allowed."
-          );
+    } catch (err: unknown) {
+      // Changed from 'any'
+      if (axios.isAxiosError<BackendErrorResponse>(err)) {
+        console.error("Error saving profile:", err);
+        if (err.response?.data?.message) {
+          if (err.response.data.message.includes("File size too large")) {
+            setError("File size too large. Max 5MB.");
+          } else if (err.response.data.message.includes("Invalid file type")) {
+            setError(
+              "Invalid file type. Only images (PNG, JPEG, GIF) are allowed."
+            );
+          } else {
+            setError(err.response.data.message || "Failed to save profile.");
+          }
         } else {
-          setError(err.response.data.message || "Failed to save profile.");
+          setError("Failed to save profile. Please try again.");
         }
+      } else if (err instanceof Error) {
+        console.error("Error saving profile:", err.message);
+        setError(err.message || "Failed to save profile. Please try again.");
       } else {
-        setError("Failed to save profile. Please try again.");
+        console.error("An unknown error occurred saving profile:", err);
+        setError(`An unknown error occurred: ${String(err)}`);
       }
       setSaveMessage(null);
     } finally {
@@ -243,11 +256,20 @@ const UserProfilePage: React.FC = () => {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmNewPassword("");
-    } catch (err: any) {
-      console.error("Error changing password:", err);
-      setPasswordChangeError(
-        err.response?.data?.message || "Failed to change password."
-      );
+    } catch (err: unknown) {
+      // Changed from 'any'
+      if (axios.isAxiosError<BackendErrorResponse>(err)) {
+        console.error("Error changing password:", err);
+        setPasswordChangeError(
+          err.response?.data?.message || "Failed to change password."
+        );
+      } else if (err instanceof Error) {
+        console.error("Error changing password:", err.message);
+        setPasswordChangeError(err.message || "Failed to change password.");
+      } else {
+        console.error("An unknown error occurred changing password:", err);
+        setPasswordChangeError(`An unknown error occurred: ${String(err)}`);
+      }
     } finally {
       setIsChangingPassword(false);
       setTimeout(() => {

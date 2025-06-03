@@ -1,11 +1,13 @@
 // frontend/src/pages/SingleRecipePage.tsx
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react"; // Import useCallback
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import api from "../api/api";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 import "./SingleRecipePage.css";
 import StarRating from "../components/StarRating/StarRating";
+import axios from "axios"; // Import axios and AxiosError
+import type { BackendErrorResponse } from "../types/index.ts"; // Assuming BackendErrorResponse is in types/index.ts
 
 // Define a type for a single recipe with ingredients (matching backend response)
 interface Ingredient {
@@ -25,6 +27,7 @@ interface Comment {
   created_at_formatted?: string;
   updated_at: string;
   replies?: Comment[]; // For nested comments
+  parent_comment_id?: number | null; // Add this to your interface
 }
 
 interface SingleRecipe {
@@ -45,40 +48,94 @@ interface SingleRecipe {
   average_rating: number;
   total_ratings: number;
   current_user_rating: number;
-  comments: Comment[]; // Add comments array to the recipe type
+  comments: Comment[];
 }
 
-// --- CommentItem Component Definition (REMAINS THE SAME) ---
-const CommentItem: React.FC<{ comment: Comment }> = ({ comment }) => {
-  // Now formatCommentDateTime will be defined within SingleRecipePage
-  // and passed down, or you can redefine a local version if you prefer
-  // to keep it self-contained in CommentItem, but then handlePostComment
-  // needs access to a different format function.
+// --- CommentItem Component Definition ---
+// Update CommentItem props to include onReplySubmit and current user info
+interface CommentItemProps {
+  comment: Comment;
+  onReplySubmit: (text: string, parentCommentId: number) => Promise<void>;
+  currentUserId: number | null;
+  currentUsername: string | null;
+  formatCommentDateTime: (dateString: string) => string;
+}
 
-  // Let's make formatCommentDateTime *also* a prop for consistency
-  // with the problem solution. This is actually a cleaner way to pass utilities.
-  // We'll update the prop definition below.
+const CommentItem: React.FC<CommentItemProps> = ({
+  comment,
+  onReplySubmit,
+  currentUserId,
+  currentUsername,
+  formatCommentDateTime,
+}) => {
+  const [showReplyForm, setShowReplyForm] = useState(false);
+  const [replyText, setReplyText] = useState("");
 
-  // TEMPORARILY: We will remove formatCommentDateTime and formatDate from here,
-  // and pass them as props if CommentItem needs them, or define them in SingleRecipePage.
-  // For simplicity, let's move formatDate into SingleRecipePage,
-  // and CommentItem will receive it as a prop.
-  // For the immediate fix, we'll assume `formatDate` is passed down.
-  // Let's refine the type for CommentItem.
+  const handleReplyClick = () => {
+    setShowReplyForm(!showReplyForm);
+    setReplyText("");
+  };
+
+  const handlePostReply = async () => {
+    if (!replyText.trim()) {
+      alert("Please enter your reply.");
+      return;
+    }
+    try {
+      await onReplySubmit(replyText, comment.id);
+      setReplyText("");
+      setShowReplyForm(false);
+    } catch (error: unknown) {
+      console.error("Error posting reply:", error);
+    }
+  };
+
   return (
     <li key={comment.id} className="single-recipe-comment-item">
       <div className="single-recipe-comment-header">
-        {/* We need to use comment.created_at_formatted here */}
         <strong>{comment.username}</strong> -{" "}
-        {comment.created_at_formatted ||
-          new Date(comment.created_at).toLocaleDateString()}
+        {formatCommentDateTime(comment.created_at)}
       </div>
       <p className="single-recipe-comment-text">{comment.text}</p>
+
+      {currentUserId && ( // Only show reply button if user is logged in
+        <button
+          className="single-recipe-comment-reply-button"
+          onClick={handleReplyClick}
+        >
+          {showReplyForm ? "Cancel Reply" : "Reply"}
+        </button>
+      )}
+
+      {showReplyForm &&
+        currentUserId && ( // Show reply form if toggled and user is logged in
+          <div className="single-recipe-add-comment single-recipe-reply-form">
+            <textarea
+              className="single-recipe-comment-input"
+              placeholder={`Replying to ${comment.username}...`}
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+            />
+            <button
+              onClick={handlePostReply}
+              className="single-recipe-action-button single-recipe-comment-button"
+            >
+              Post Reply
+            </button>
+          </div>
+        )}
+
       {comment.replies && comment.replies.length > 0 && (
         <ul className="single-recipe-comment-replies">
           {comment.replies.map((reply) => (
-            // Ensure key prop is here for replies as well
-            <CommentItem key={reply.id} comment={reply} />
+            <CommentItem
+              key={reply.id}
+              comment={reply}
+              onReplySubmit={onReplySubmit}
+              currentUserId={currentUserId}
+              currentUsername={currentUsername}
+              formatCommentDateTime={formatCommentDateTime} // Pass down formatter
+            />
           ))}
         </ul>
       )}
@@ -86,35 +143,25 @@ const CommentItem: React.FC<{ comment: Comment }> = ({ comment }) => {
   );
 };
 
-// --- Updated CommentItem type definition for clarity if passing down format function ---
-// interface CommentItemProps {
-//   comment: Comment;
-//   formatDate: (date: Date) => string; // Pass the format function as a prop
-// }
-// const CommentItem: React.FC<CommentItemProps> = ({ comment, formatDate }) => {
-//   return (
-//     <li key={comment.id} className="single-recipe-comment-item">
-//       <div className="single-recipe-comment-header">
-//         <strong>{comment.username}</strong> -{" "}
-//         {formatDate(new Date(comment.created_at))} {/* Use the passed format function */}
-//       </div>
-//       <p className="single-recipe-comment-text">{comment.text}</p>
-//       {comment.replies && comment.replies.length > 0 && (
-//         <ul className="single-recipe-comment-replies">
-//           {comment.replies.map((reply) => (
-//             <CommentItem key={reply.id} comment={reply} formatDate={formatDate} /> // Pass it recursively
-//           ))}
-//         </ul>
-//       )}
-//     </li>
-//   );
-// };
-// --- END Updated CommentItem type definition ---
+const addFormattedDatesToCommentTree = (
+  commentsArray: Comment[],
+  formatDateTime: (dateString: string) => string
+): Comment[] => {
+  if (!commentsArray) return [];
+  return commentsArray.map((comment) => ({
+    ...comment,
+    created_at_formatted: formatDateTime(comment.created_at),
+    replies:
+      comment.replies && comment.replies.length > 0
+        ? addFormattedDatesToCommentTree(comment.replies, formatDateTime)
+        : undefined, // Ensure replies is undefined or an empty array if no replies
+  }));
+};
 
 const SingleRecipePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user } = useAuth(); // `user` has `userId` and `username`
   const [recipe, setRecipe] = useState<SingleRecipe | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -129,41 +176,63 @@ const SingleRecipePage: React.FC = () => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
 
-  // --- START: Moved formatDate helper function ---
-  const formatDate = (date: Date) => {
-    if (isNaN(date.getTime())) {
-      console.warn("Invalid date object passed to formatDate:", date);
-      return "Invalid Date";
-    }
-    return date.toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short", // e.g., Jun
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true, // For AM/PM format
-    });
-  };
-
-  const formatCommentDateTime = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
+  const formatDate = useCallback(
+    (date: Date) => {
       if (isNaN(date.getTime())) {
-        console.warn("Invalid date string, attempting to parse:", dateString);
-        const parsedDate = new Date(Date.parse(dateString));
-        if (isNaN(parsedDate.getTime())) {
-          console.error("Could not parse date:", dateString);
-          return "Invalid Date";
-        }
-        return formatDate(parsedDate);
+        console.warn("Invalid date object passed to formatDate:", date);
+        return "Invalid Date";
       }
-      return formatDate(date);
-    } catch (error) {
-      console.error("Error formatting date:", error);
-      return "Invalid Date";
-    }
-  };
-  // --- END: Moved formatDate helper function ---
+      return date.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short", // e.g., Jun
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true, // For AM/PM format
+      });
+    },
+    [] // Empty dependency array as formatDate has no external dependencies
+  );
+
+  const formatCommentDateTime = useCallback(
+    (dateString: string) => {
+      try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+          console.warn("Invalid date string, attempting to parse:", dateString);
+          const parsedDate = new Date(Date.parse(dateString));
+          if (isNaN(parsedDate.getTime())) {
+            console.error("Could not parse date:", dateString);
+            return "Invalid Date";
+          }
+          return formatDate(parsedDate);
+        }
+        return formatDate(date);
+      } catch (error) {
+        console.error("Error formatting date:", error);
+        return "Invalid Date";
+      }
+    },
+    [formatDate]
+  );
+
+  // Helper function to build the threaded comment tree on the frontend
+  const buildCommentTree = useCallback(
+    (commentsList: Comment[], parentId: number | null = null): Comment[] => {
+      const tree: Comment[] = [];
+      commentsList
+        .filter((comment) => comment.parent_comment_id === parentId)
+        .forEach((comment) => {
+          tree.push({
+            ...comment,
+            created_at_formatted: formatCommentDateTime(comment.created_at), // Uses formatCommentDateTime
+            replies: buildCommentTree(commentsList, comment.id),
+          });
+        });
+      return tree;
+    },
+    [formatCommentDateTime]
+  );
 
   useEffect(() => {
     const fetchRecipe = async () => {
@@ -176,17 +245,15 @@ const SingleRecipePage: React.FC = () => {
         const response = await api.get(`/recipes/${id}`);
         const recipeData = response.data;
 
-        // Populate comments from the fetched recipe data
-        // Ensure comments are formatted before setting state
-        const formattedComments = (recipeData.comments || []).map(
-          (comment: Comment) => ({
-            ...comment,
-            created_at_formatted: formatCommentDateTime(comment.created_at), // Use the new function
-          })
+        // Backend already provides threaded comments.
+        // Just recursively add the formatted date for display on the frontend.
+        const commentsWithFormattedDates = addFormattedDatesToCommentTree(
+          recipeData.comments || [],
+          formatCommentDateTime // Pass the formatCommentDateTime function
         );
 
         setRecipe(recipeData);
-        setComments(formattedComments); // Use the formatted comments
+        setComments(commentsWithFormattedDates); // Set the comments directly from the backend's threaded structure
         setIsFavorited(
           location.state?.isFavorited || recipeData.isFavorited || false
         );
@@ -194,34 +261,52 @@ const SingleRecipePage: React.FC = () => {
         setNumRatings(parseInt(recipeData.total_ratings || 0));
         setUserCurrentRating(parseFloat(recipeData.current_user_rating || 0));
         setLoading(false);
-      } catch (err: any) {
-        console.error("Error fetching recipe:", err);
-        if (err.response && err.response.status === 404) {
-          setError("Recipe not found.");
+      } catch (err: unknown) {
+        // Changed from 'any'
+        if (axios.isAxiosError<BackendErrorResponse>(err)) {
+          console.error("Error fetching recipe:", err);
+          if (err.response && err.response.status === 404) {
+            setError("Recipe not found.");
+          } else {
+            setError(
+              err.response?.data?.message ||
+                "Failed to load recipe details. Please try again later."
+            );
+          }
+        } else if (err instanceof Error) {
+          console.error("Error fetching recipe:", err.message);
+          setError(
+            err.message ||
+              "Failed to load recipe details. Please try again later."
+          );
         } else {
-          setError("Failed to load recipe details. Please try again later.");
+          console.error("An unknown error occurred fetching recipe:", err);
+          setError(`An unknown error occurred: ${String(err)}`);
         }
         setLoading(false);
       }
     };
 
     fetchRecipe();
-  }, [id, location.state?.isFavorited]); // Added formatCommentDateTime to dependency array if you redefine it outside of SingleRecipePage
+  }, [id, location.state?.isFavorited, formatCommentDateTime]);
 
   const canEditDelete =
     recipe && user && (user.id === recipe.user_id || user.is_admin);
 
   const getEmbedUrl = (url: string) => {
-    if (url.includes("youtube.com/watch")) {
+    // YouTube standard watch URL: https://www.youtube.com/watch?v=VIDEO_ID
+    if (url.includes("youtube.com/watch?v=")) {
       const videoId = url.split("v=")[1]?.split("&")[0];
       return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
     }
+    // YouTube short URL: https://youtu.be/VIDEO_ID
     if (url.includes("youtu.be/")) {
       const videoId = url.split("youtu.be/")[1]?.split("?")[0];
       return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
     }
-    if (url.includes("vimeo.com")) {
-      const videoId = url.split("/").pop();
+    // Vimeo URL: https://vimeo.com/VIDEO_ID
+    if (url.includes("vimeo.com/")) {
+      const videoId = url.split("/").pop(); // Gets the last part of the URL, usually the ID
       return videoId ? `https://player.vimeo.com/video/${videoId}` : null;
     }
     return null;
@@ -259,14 +344,23 @@ const SingleRecipePage: React.FC = () => {
     try {
       const response = await api.post(`/recipes/${recipe.id}/favorite`);
       setIsFavorited(response.data.favorited);
-    } catch (error: any) {
-      console.error(
-        "Error toggling favorite:",
-        error.response?.data || error.message
-      );
-      alert(
-        error.response?.data?.message || "Failed to toggle favorite status."
-      );
+    } catch (error: unknown) {
+      // Changed from 'any'
+      if (axios.isAxiosError<BackendErrorResponse>(error)) {
+        console.error(
+          "Error toggling favorite:",
+          error.response?.data || error.message
+        );
+        alert(
+          error.response?.data?.message || "Failed to toggle favorite status."
+        );
+      } else if (error instanceof Error) {
+        console.error("Error toggling favorite:", error.message);
+        alert(error.message || "Failed to toggle favorite status.");
+      } else {
+        console.error("An unknown error occurred toggling favorite:", error);
+        alert(`An unknown error occurred: ${String(error)}`);
+      }
     }
   };
 
@@ -291,51 +385,51 @@ const SingleRecipePage: React.FC = () => {
       }
 
       alert(response.data.message);
-    } catch (error: any) {
-      console.error(
-        "Error submitting rating:",
-        error.response?.data || error.message
-      );
-      alert(
-        error.response?.data?.message ||
-          "Failed to submit rating. Please try again."
-      );
+    } catch (error: unknown) {
+      // Changed from 'any'
+      if (axios.isAxiosError<BackendErrorResponse>(error)) {
+        console.error(
+          "Error submitting rating:",
+          error.response?.data || error.message
+        );
+        alert(
+          error.response?.data?.message ||
+            "Failed to submit rating. Please try again."
+        );
+      } else if (error instanceof Error) {
+        console.error("Error submitting rating:", error.message);
+        alert(error.message || "Failed to submit rating. Please try again.");
+      } else {
+        console.error("An unknown error occurred submitting rating:", error);
+        alert(`An unknown error occurred: ${String(error)}`);
+      }
     }
   };
 
   // Function to parse instructions and apply bold styling
   const parseInstructions = (instructionsText: string) => {
-    // Split the entire instructions string by double newlines first,
-    // as that's your general step delimiter.
-    // However, for section titles, we'll split by single newlines.
-    const lines = instructionsText.split("\n"); // Split by single newlines for initial parsing
+    const lines = instructionsText.split("\n");
 
     const sections: { title?: string; steps: string[] }[] = [];
-    let currentSection: { title?: string; steps: string[] } = { steps: [] }; // Initialize with an empty section
+    let currentSection: { title?: string; steps: string[] } = { steps: [] };
 
     lines.forEach((line) => {
       const trimmedLine = line.trim();
 
       if (trimmedLine.startsWith("*")) {
-        // This is a new section title
-        // If the currentSection has content, push it to sections array before starting a new one
         if (currentSection.steps.length > 0 || currentSection.title) {
           sections.push(currentSection);
         }
-        // Extract title, removing leading and trailing asterisks
-        let title = trimmedLine.substring(1); // Remove leading asterisk
+        let title = trimmedLine.substring(1);
         if (title.endsWith("*")) {
-          title = title.substring(0, title.length - 1); // Remove trailing asterisk
+          title = title.substring(0, title.length - 1);
         }
-        currentSection = { title: title.trim(), steps: [] }; // Start a new section
+        currentSection = { title: title.trim(), steps: [] };
       } else if (trimmedLine.length > 0) {
-        // This is a step, add it to the current section
         currentSection.steps.push(trimmedLine);
       }
-      // Ignore empty lines that are not part of a double newline step
     });
 
-    // Push the last collected section if it has content
     if (currentSection.steps.length > 0 || currentSection.title) {
       sections.push(currentSection);
     }
@@ -362,7 +456,7 @@ const SingleRecipePage: React.FC = () => {
   };
 
   const handleShare = () => {
-    const shareUrl = window.location.href; // Or construct a specific URL
+    const shareUrl = window.location.href;
     const shareText = `Check out this recipe: ${recipe?.title}`;
 
     if (navigator.share) {
@@ -373,54 +467,123 @@ const SingleRecipePage: React.FC = () => {
           url: shareUrl,
         })
         .then(() => console.log("Shared successfully."))
-        .catch((error) => console.log("Error sharing", error));
+        .catch((error: unknown) => {
+          // Changed from 'any'
+          console.log("Error sharing", error);
+          // You could add a more user-friendly message here if desired
+        });
     } else {
-      // Fallback for browsers that don't support the Web Share API
-      const emailBody = `${shareText}\n\n${shareUrl}`; // Fixed string literal for emailBody
+      const emailBody = `${shareText}\n\n${shareUrl}`;
       window.location.href = `mailto:?subject=${encodeURIComponent(
         "Check out this recipe!"
       )}&body=${encodeURIComponent(emailBody)}`;
     }
   };
 
-  // Function to handle posting a new comment
-  const handlePostComment = async () => {
+  // Function to handle posting a new comment or reply
+  // Now accepts an optional parentCommentId
+  const handlePostComment = async (
+    text: string,
+    parentCommentId: number | null = null
+  ) => {
     if (!user) {
       alert("Please log in to leave a comment!");
       return;
     }
-    if (!newComment.trim()) {
+    if (!text.trim()) {
       alert("Please enter a comment.");
       return;
     }
+    if (!recipe) return; // Ensure recipe is loaded
 
     try {
-      //  Replace with your actual API endpoint for posting comments
-      const response = await api.post(`/recipes/${recipe?.id}/comments`, {
-        text: newComment,
-      });
+      const payload = {
+        text: text,
+        parent_comment_id: parentCommentId,
+      };
 
-      // Assuming the API returns the newly created comment, which includes 'created_at' and 'username'
-      const newCommentData: Comment = response.data.comment; // Backend returns { message, comment }
+      const response = await api.post(
+        `/recipes/${recipe.id}/comments`,
+        payload
+      );
 
-      // Format the created_at date *before* adding it to the state
-      // Use formatCommentDateTime, which includes error handling and specific formatting
+      const newCommentData: Comment = response.data.comment;
+      console.log("New comment data from backend:", newCommentData);
+
+      // Add username from frontend user state if not provided by backend (good fallback)
+      if (!newCommentData.username && user?.username) {
+        newCommentData.username = user.username;
+      }
+
+      // Format the created_at date immediately for display
       const formattedComment = {
         ...newCommentData,
         created_at_formatted: formatCommentDateTime(newCommentData.created_at),
+        replies: [], // New comments/replies start with no replies
       };
 
-      // Update the state to include the new comment
-      setComments([formattedComment, ...comments]); // Add the new comment to the beginning
+      // Function to recursively insert a new comment/reply into the tree
+      const insertCommentIntoTree = (
+        commentsArray: Comment[],
+        newCmt: Comment
+      ): Comment[] => {
+        if (newCmt.parent_comment_id === null) {
+          // It's a top-level comment, add to the beginning
+          return [newCmt, ...commentsArray];
+        } else {
+          // It's a reply, find its parent and insert
+          return commentsArray.map((cmt) => {
+            if (cmt.id === newCmt.parent_comment_id) {
+              // If this is the parent, create a NEW object for parent
+              // and ensure its replies array is also a NEW array reference
+              return {
+                ...cmt,
+                replies: cmt.replies
+                  ? [...cmt.replies, newCmt] // Create new array reference for replies
+                  : [newCmt], // If no replies array, create one
+              };
+            } else if (cmt.replies && cmt.replies.length > 0) {
+              // Recursively check children. Ensure a NEW object for cmt
+              // if any of its children are modified.
+              const updatedReplies = insertCommentIntoTree(cmt.replies, newCmt);
+              if (updatedReplies !== cmt.replies) {
+                // Only update if children were modified
+                return {
+                  ...cmt,
+                  replies: updatedReplies,
+                };
+              }
+            }
+            return cmt; // Return original comment if no change occurred in this branch
+          });
+        }
+      };
 
-      // Clear the input field
-      setNewComment("");
-    } catch (error: any) {
-      console.error("Error posting comment:", error);
-      alert(
-        error.response?.data?.message ||
-          "Failed to post comment. Please try again."
+      setComments((prevComments) =>
+        insertCommentIntoTree(prevComments, formattedComment)
       );
+
+      // Clear the appropriate input field
+      if (parentCommentId === null) {
+        setNewComment(""); // Clear main comment input
+      }
+      // For replies, the CommentItem component will clear its own input
+    } catch (error: unknown) {
+      // Changed from 'any'
+      if (axios.isAxiosError<BackendErrorResponse>(error)) {
+        console.error("Error posting comment:", error);
+        alert(
+          error.response?.data?.message ||
+            "Failed to post comment. Please try again."
+        );
+      } else if (error instanceof Error) {
+        console.error("Error posting comment:", error.message);
+        alert(error.message || "Failed to post comment. Please try again.");
+      } else {
+        console.error("An unknown error occurred posting comment:", error);
+        alert(`An unknown error occurred: ${String(error)}`);
+      }
+      throw error; // Re-throw to allow CommentItem to handle error if needed
     }
   };
 
@@ -544,14 +707,21 @@ const SingleRecipePage: React.FC = () => {
         {comments.length > 0 ? (
           <ul className="single-recipe-comment-list">
             {comments.map((comment) => (
-              <CommentItem key={comment.id} comment={comment} />
+              <CommentItem
+                key={comment.id}
+                comment={comment}
+                onReplySubmit={handlePostComment} // Pass the handler
+                currentUserId={user ? user.id : null} // Pass current user ID
+                currentUsername={user ? user.username : null} // Pass current username
+                formatCommentDateTime={formatCommentDateTime} // Pass down formatter
+              />
             ))}
           </ul>
         ) : (
           <p>No comments yet.</p>
         )}
 
-        {/* Add new comment input */}
+        {/* Main Add new comment input */}
         {user && (
           <div className="single-recipe-add-comment">
             <textarea
@@ -561,7 +731,7 @@ const SingleRecipePage: React.FC = () => {
               onChange={(e) => setNewComment(e.target.value)}
             />
             <button
-              onClick={handlePostComment}
+              onClick={() => handlePostComment(newComment, null)} // Call with null for top-level comment
               className="single-recipe-action-button single-recipe-comment-button"
             >
               Post Comment

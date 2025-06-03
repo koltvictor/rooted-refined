@@ -8,8 +8,7 @@ const AboutPage: React.FC = () => {
   return (
     <div className="about-container">
       <header className="about-header">
-        <h1 className="about-title">About Rooted & Refined</h1>
-        <p className="about-subtitle">My Culinary Journey & Ethos</p>
+        <h1 className="about-title">About Kolt's Green Table</h1>
       </header>
 
       <div className="about-photo-wrapper">
@@ -21,67 +20,100 @@ const AboutPage: React.FC = () => {
       </div>
 
       <section className="about-section about-intro">
-        <h2 className="section-title">The Roots of My Passion</h2>
         <p>
-          My journey into the culinary world began not in a gleaming
-          professional kitchen, but in the sun-drenched gardens and bustling
-          home kitchens of my childhood. I grew up understanding that food was
-          more than just sustenance; it was a language of love, a vessel for
-          tradition, and a powerful expression of creativity. Every herb pulled
-          from the earth, every vegetable harvested, every meal shared at a
-          communal table cemented my belief in the inherent beauty and profound
-          impact of well-prepared food.
+          Welcome to Kolt's Green Table, a place where culinary artistry meets
+          the pure, vibrant essence of nature. My journey into the kitchen began
+          in childhood, not just as a pastime, but as a fascinating dance
+          between art and chemistry. It was truly enchanting to discover how
+          simple ingredients could transform—not only into something stunningly
+          delicious and beautiful, but also profoundly nourishing. This early
+          spark ignited a lifelong passion, not just for cooking, but for the
+          immense joy found in sharing unforgettable meals.
+        </p>
+        <br />
+        <h2 className="section-title">
+          My Culinary Philosophy: A Celebration of Plants
+        </h2>
+        <p>
+          At Kolt's Table, every dish is a heartfelt testament to the boundless
+          possibilities and extraordinary flavors of the plant kingdom. My
+          philosophy centers on unlocking the incredible, often-untapped
+          potential of seasonal vegetables, fruits, grains, and legumes,
+          revealing a world of diverse textures and tastes far beyond anything
+          you might expect.
         </p>
         <p>
-          From those early explorations, my path has been one of continuous
-          discovery. I've immersed myself in diverse culinary traditions, from
-          the meticulous precision of classical techniques to the bold flavors
-          of global street food. Each experience has layered upon the last,
-          building a foundation of knowledge and intuition that guides my hands
-          and inspires my palate.
+          I'm deeply committed to seasonal abundance, sourcing ingredients
+          straight from my own garden or local farmer's markets to ensure peak
+          freshness and unparalleled flavor. My approach is rooted in using only
+          pure, unprocessed ingredients, meticulously prepared from scratch.
+          This isn't just about health; it's about honoring each ingredient and
+          allowing its natural essence to truly sing through refined, thoughtful
+          techniques.
+        </p>
+        <p>
+          This path truly crystallized as I sought to create exceptional meals
+          for my partner, who embraces a plant-centric diet. Disheartened by the
+          limited and often artificial options available, I felt a deep drive to
+          prove that plant-forward cuisine could be both incredibly elegant and
+          profoundly satisfying, without relying on processed substitutes. The
+          sheer happiness of crafting such honest, vibrant, and delicious
+          food—knowing it leaves you feeling wonderful—quickly became my guiding
+          culinary purpose. Imagine: a healthier, incredibly flavorful, and
+          often more economical way to experience food, rich with an infinite
+          variety of edible wonders.
         </p>
       </section>
 
       <section className="about-section about-ethos">
-        <h2 className="section-title">My Culinary Ethos: Rooted & Refined</h2>
+        <h2 className="section-title">
+          Inspired by Greatness, Driven by Purpose
+        </h2>
         <p>
-          "Rooted & Refined" encapsulates the heart of my cooking philosophy.
-          It's a dedication to ingredients that are **rooted** in authenticity –
-          seasonal, high-quality, and often locally sourced. I believe truly
-          exceptional food starts with respect for the earth and its bounty.
-          This means celebrating the natural flavors of produce, the integrity
-          of ethically raised proteins, and the nuanced notes of artisanal
-          staples.
-        </p>
-        <p>
-          But "rooted" also extends to tradition. I find immense value in the
-          wisdom passed down through generations of cooks, in the techniques
-          that have stood the test of time, and in the comfort of classic
-          dishes.
-        </p>
-        <p>
-          Simultaneously, my approach is **refined**. This isn't about
-          unnecessary complexity, but about elevating the familiar through
-          thoughtful technique, balanced flavors, and elegant presentation. It's
-          about understanding how each element contributes to the whole,
-          ensuring every bite is a harmonious experience. It's the art of taking
-          simple, honest ingredients and transforming them into something
-          extraordinary, a testament to the idea that refinement can be achieved
-          without pretension.
+          My culinary journey is continually shaped by the profound wisdom and
+          groundbreaking techniques of masters. I've immersed myself in the
+          works of chefs like Thomas Keller—my guiding light, whose subtle
+          brilliance and meticulous approach I endlessly strive to
+          emulate—Dominique Crenn, Massimo Bottura, Grant Achatz, and Yotam
+          Ottolenghi. These visionary chefs inspire me not only with their
+          elevated artistry but also with their profound commitment to
+          sustainability and ingenuity. They've shown how to create
+          extraordinary culinary ecosystems, minimizing waste by utilizing every
+          part of the harvest and fostering practices that benefit both the
+          planet and the human body. This dedication to both exquisite flavor
+          and environmental stewardship, achieved at the highest level, is what
+          truly fuels my own drive to craft dishes that are both amazing and
+          responsible. It's about achieving refined elegance without pretension,
+          ensuring every single bite is a harmonious delight, and knowing it's a
+          step toward a more sustainable and delicious future.
         </p>
       </section>
 
-      <section className="about-section about-invitation">
-        <h2 className="section-title">Join Me on This Culinary Adventure</h2>
+      <section className="about-section about-ethos">
+        <h2 className="section-title">
+          More Than Just Food: It's My Love Language
+        </h2>
         <p>
-          Through this website, I aim to share not just recipes, but a piece of
-          my culinary soul. Each dish here has been meticulously crafted,
-          tested, and imbued with the "Rooted & Refined" philosophy. My hope is
-          that these recipes inspire you to explore, create, and find your own
-          joy in the kitchen.
+          For me, cooking transcends a mere craft; it's a profound expression of
+          love. There’s an immense, heartwarming satisfaction in nurturing
+          people through food, in seeing smiles bloom around the table, and in
+          witnessing the pure delight that dances in their eyes with every
+          taste. Food and cooking truly are my love language—a powerful, tender
+          way to connect, comfort, and celebrate.
         </p>
         <p>
-          Thank you for being here. Let's create something beautiful together.
+          Through Kolt's Table, my heartfelt aim is to share this passion, this
+          expertise, and this joyful approach with you. Each recipe, video, and
+          piece of content is crafted to ignite your own curiosity and empower
+          you to explore the boundless world of seasonal, unprocessed,
+          plant-centric cooking. Join me on this delicious adventure, and let's
+          discover together just how incredibly tasty, accessible, and truly
+          delightful a plant-forward plate can be.
+        </p>
+        <p>
+          My greatest hope is that these recipes don't just fill your belly, but
+          also inspire your spirit, spark your creativity, and bring a deep,
+          satisfying joy to your own kitchen.
         </p>
       </section>
     </div>

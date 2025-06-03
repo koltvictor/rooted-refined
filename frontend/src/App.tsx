@@ -6,7 +6,9 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AuthProvider } from "./context/AuthProvider"; // Correct import for AuthProvider
+import { useAuth } from "./hooks/useAuth"; // Correct import for useAuth
+
 import Navbar from "./components/Layout/Navbar";
 import Login from "./components/Auth/Login";
 import Register from "./components/Auth/Register";
@@ -84,31 +86,14 @@ const App: React.FC = () => {
                 </PrivateRoute>
               }
             />
-            {/* CORRECTED AND CONSOLIDATED FAVORITES ROUTE: */}
             <Route
-              path="/my-favorites" // Ensure this matches your Navbar link
+              path="/my-favorites"
               element={
                 <PrivateRoute>
-                  <FavoritedRecipesPage /> {/* <--- CORRECTED COMPONENT NAME */}
+                  <FavoritedRecipesPage />
                 </PrivateRoute>
               }
             />
-            {/* <Route
-              path="/pantry"
-              element={
-                <PrivateRoute>
-                  <PantryPage />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/shopping-list"
-              element={
-                <PrivateRoute>
-                  <ShoppingListPage />
-                </PrivateRoute>
-              }
-            /> */}
           </Routes>
         </div>
       </AuthProvider>

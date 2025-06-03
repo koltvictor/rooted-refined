@@ -2,8 +2,11 @@
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../../api/api";
-import { useAuth } from "../../context/AuthContext";
+import api from "../../api/api.ts";
+import { useAuth } from "../../hooks/useAuth";
+import type { CSSProperties } from "react";
+import axios from "axios"; // <-- Make sure AxiosError is imported
+import type { BackendErrorResponse } from "../../types/index.ts"; // <-- Ensure this is imported
 
 const Register: React.FC = () => {
   const [username, setUsername] = useState("");
@@ -22,18 +25,35 @@ const Register: React.FC = () => {
         email,
         password,
       });
+      // Assuming response.data contains token and user, similar to login
       login(response.data.token, response.data.user); // Log in the user
       setMessage("Registration successful!");
       navigate("/recipes"); // Redirect to recipes page
-    } catch (error: any) {
-      console.error(
-        "Registration failed:",
-        error.response?.data || error.message
-      );
-      setMessage(
-        error.response?.data?.message ||
-          "Registration failed. Please try again."
-      );
+    } catch (error: unknown) {
+      // <-- Change 'any' to 'unknown' here
+      if (axios.isAxiosError<BackendErrorResponse>(error)) {
+        // <-- Add type guard
+        console.error(
+          "Registration failed:",
+          error.response?.data || error.message
+        );
+        setMessage(
+          error.response?.data?.message ||
+            "Registration failed. Please try again."
+        );
+      } else if (error instanceof Error) {
+        // <-- Add general Error handling
+        console.error("Registration failed:", error.message);
+        setMessage(
+          error.message || "An unexpected error occurred during registration."
+        );
+      } else {
+        // <-- Handle truly unknown errors
+        console.error("Registration failed: An unknown error occurred", error);
+        setMessage(
+          `An unknown error occurred during registration: ${String(error)}`
+        );
+      }
     }
   };
 
@@ -92,7 +112,7 @@ const Register: React.FC = () => {
   );
 };
 
-const styles = {
+const styles: { [key: string]: CSSProperties } = {
   container: {
     maxWidth: "400px",
     margin: "50px auto",
@@ -124,7 +144,7 @@ const styles = {
     padding: "10px",
     border: "1px solid #ccc",
     borderRadius: "4px",
-    boxSizing: "border-box", // Ensures padding doesn't increase total width
+    boxSizing: "border-box",
   },
   button: {
     padding: "10px 15px",

@@ -1,12 +1,11 @@
-// frontend/src/pages/FavoritedRecipesPage.tsx
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import api from "../api/api";
-import { useAuth } from "../context/AuthContext";
-import "./FavoritedRecipesPage.css"; // We'll create this next
+import api from "../api/api.ts";
+import { useAuth } from "../hooks/useAuth";
+import "./FavoritedRecipesPage.css";
+import axios from "axios";
+import type { BackendErrorResponse } from "../types/index.ts";
 
-// Define the type for a favorited recipe (simplified for listing)
 interface FavoritedRecipe {
   id: number;
   title: string;
@@ -15,7 +14,7 @@ interface FavoritedRecipe {
   prep_time_minutes?: number;
   cook_time_minutes?: number;
   servings?: number;
-  username?: string; // Creator's username
+  username?: string;
 }
 
 const FavoritedRecipesPage: React.FC = () => {
@@ -28,7 +27,7 @@ const FavoritedRecipesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterCategory, setFilterCategory] = useState("All"); // Placeholder for future categories
+  const [filterCategory, setFilterCategory] = useState("All");
 
   // Helper function to format time (copied from SingleRecipePage)
   const formatTime = (minutes: number | undefined) => {
@@ -50,35 +49,45 @@ const FavoritedRecipesPage: React.FC = () => {
   };
 
   useEffect(() => {
-    // Redirect if not logged in and auth check is complete
     if (!authLoading && !user) {
-      navigate("/login"); // Or to a general recipes page
+      navigate("/login");
       return;
     }
 
     const fetchFavoritedRecipes = async () => {
-      if (!user) return; // Don't fetch if user is not available yet
-
+      if (!user) return;
       setLoading(true);
       setError(null);
       try {
-        const response = await api.get(`/recipes/my-favorites`);
-        setFavoritedRecipes(response.data);
-      } catch (err: any) {
-        console.error("Error fetching favorited recipes:", err);
-        setError(
-          err.response?.data?.message || "Failed to load favorited recipes."
+        const response = await api.get<FavoritedRecipe[]>(
+          `/recipes/my-favorites`
         );
+        setFavoritedRecipes(response.data);
+      } catch (err: unknown) {
+        if (axios.isAxiosError<BackendErrorResponse>(err)) {
+          console.error("Error fetching favorited recipes:", err);
+          setError(
+            err.response?.data?.message || "Failed to load favorited recipes."
+          );
+        } else if (err instanceof Error) {
+          console.error("Error fetching favorited recipes:", err.message);
+          setError(err.message || "Failed to load favorited recipes.");
+        } else {
+          console.error(
+            "An unknown error occurred fetching favorited recipes:",
+            err
+          );
+          setError(`An unknown error occurred: ${String(err)}`);
+        }
       } finally {
         setLoading(false);
       }
     };
 
     if (user) {
-      // Only fetch if user object is available
       fetchFavoritedRecipes();
     }
-  }, [user, authLoading, navigate]); // Re-fetch when user or authLoading state changes
+  }, [user, authLoading, navigate]);
 
   // Filter recipes based on search term and category (placeholder)
   const filteredRecipes = favoritedRecipes.filter((recipe) => {
@@ -148,10 +157,8 @@ const FavoritedRecipesPage: React.FC = () => {
         <div className="favorites-grid">
           {filteredRecipes.map((recipe) => (
             <Link
-              to={{
-                pathname: `/recipes/${recipe.id}`,
-                state: { isFavorited: true },
-              }}
+              to={`/recipes/${recipe.id}`} // 'to' prop is now just the path string
+              state={{ isFavorited: true }} // 'state' is a separate prop on the Link component
               key={recipe.id}
               className="favorite-card"
             >

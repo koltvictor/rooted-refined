@@ -1,6 +1,6 @@
 // frontend/src/utils/hooks.ts
 
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react"; // Add useContext
 
 /**
  * Custom hook to debounce a value.
@@ -15,18 +15,14 @@ export function useDebounce<T>(value: T, delay?: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
   useEffect(() => {
-    // Set a timeout that will update the debounced value after the specified delay
     const handler = setTimeout(() => {
       setDebouncedValue(value);
-    }, delay || 500); // Default delay of 500ms if not provided
+    }, delay || 500);
 
-    // Cleanup function: This is important. If 'value' changes again before the timeout fires,
-    // clear the previous timeout. This ensures the debounced value only updates
-    // after a period of inactivity.
     return () => {
       clearTimeout(handler);
     };
-  }, [value, delay]); // Only re-run the effect if value or delay changes
+  }, [value, delay]);
 
   return debouncedValue;
 }
