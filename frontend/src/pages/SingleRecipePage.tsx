@@ -6,8 +6,9 @@ import api from "../api/api";
 import { useAuth } from "../hooks/useAuth";
 import "./SingleRecipePage.css";
 import StarRating from "../components/StarRating/StarRating";
-import axios, { AxiosError } from "axios";
+import axios from "axios";
 import type { BackendErrorResponse } from "../types/index.ts";
+import { getVideoDetailsFromUrl } from "../utils/urlHelpers";
 
 // Define a type for a single recipe with ingredients (matching backend response)
 interface Ingredient {
@@ -488,10 +489,10 @@ const SingleRecipePage: React.FC = () => {
           console.log("Error sharing", error);
         });
     } else {
-      const emailBody = `<span class="math-inline">\{shareText\}\\n\\n</span>{shareUrl}`;
-      window.location.href = `mailto:?subject=<span class="math-inline">\{encodeURIComponent\(
-"Check out this recipe\!"
-\)\}&body\=</span>{encodeURIComponent(emailBody)}`;
+      const emailBody = `${shareText}\n\n${shareUrl}`; // <<< CORRECTED LINE
+      window.location.href = `mailto:?subject=${encodeURIComponent(
+        "Check out this recipe!"
+      )}&body=${encodeURIComponent(emailBody)}`; // <<< CORRECTED LINE
     }
   };
 
